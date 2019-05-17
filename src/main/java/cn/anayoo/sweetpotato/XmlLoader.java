@@ -1,5 +1,7 @@
-package cn.anayoo.sweetPotato;
+package cn.anayoo.sweetpotato;
 
+import cn.anayoo.sweetpotato.model.Field;
+import cn.anayoo.sweetpotato.model.Table;
 import com.zaxxer.hikari.HikariConfig;
 import org.dom4j.DocumentException;
 import org.dom4j.io.SAXReader;

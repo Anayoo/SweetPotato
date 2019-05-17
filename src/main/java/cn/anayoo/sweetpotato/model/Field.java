@@ -1,4 +1,4 @@
-package cn.anayoo.sweetPotato;
+package cn.anayoo.sweetpotato.model;
 
 public class Field {
 

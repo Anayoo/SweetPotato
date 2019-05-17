@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>cn.anayoo</groupId>
-    <artifactId>sweetPotato</artifactId>
+    <artifactId>SweetPotato</artifactId>
     <version>1.0</version>
     <packaging>war</packaging>
 
@@ -16,8 +16,6 @@
         <servlet.version>4.0.1</servlet.version>
         <hikaricp.version>3.3.1</hikaricp.version>
         <mysql.version>8.0.16</mysql.version>
-        <slf4j.version>1.8.0-beta4</slf4j.version>
-        <log4j.version>2.11.2</log4j.version>
         <dom4j.version>2.1.1</dom4j.version>
         <javassist.version>3.25.0-GA</javassist.version>
 
@@ -28,7 +26,7 @@
     </properties>
 
     <build>
-        <finalName>sweetPotato</finalName>
+        <finalName>SweetPotato</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -40,10 +38,32 @@
                 </configuration>
             </plugin>
             <plugin>
+
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.0.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>src/demo/java</source>
+                                <source>src/main/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.2.0</version>
                 <configuration>
+                    <webappDirectory>src/demo/webapps/</webappDirectory>
                     <warSourceExcludes>src/main/resources/**</warSourceExcludes>
                 </configuration>
             </plugin>
@@ -63,12 +83,6 @@
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
             <version>${xmlbind.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.tomcat</groupId>
-            <artifactId>tomcat-catalina</artifactId>
-            <version>9.0.19</version>
         </dependency>
 
         <dependency>
@@ -118,33 +132,6 @@
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>${mysql.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
-            <version>${log4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>${log4j.version}</version>
         </dependency>
 
         <dependency>

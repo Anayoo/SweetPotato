@@ -1,6 +1,6 @@
-package cn.anayoo.sweetPotato.db;
+package cn.anayoo.sweetpotato.db;
 
-import cn.anayoo.sweetPotato.XmlLoader;
+import cn.anayoo.sweetpotato.XmlLoader;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 

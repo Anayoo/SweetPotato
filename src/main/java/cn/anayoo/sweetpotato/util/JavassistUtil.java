@@ -1,4 +1,4 @@
-package cn.anayoo.sweetPotato.util;
+package cn.anayoo.sweetpotato.util;
 
 import javassist.*;
 import javassist.bytecode.AnnotationsAttribute;

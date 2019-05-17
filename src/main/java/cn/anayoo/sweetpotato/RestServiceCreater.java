@@ -1,5 +1,7 @@
 package cn.anayoo.sweetpotato;
 
+import cn.anayoo.sweetpotato.model.Field;
+import cn.anayoo.sweetpotato.model.Table;
 import cn.anayoo.sweetpotato.util.JavassistUtil;
 import javassist.*;
 import javassist.bytecode.ParameterAnnotationsAttribute;
@@ -7,13 +9,13 @@ import javassist.bytecode.annotation.Annotation;
 import javassist.bytecode.annotation.ArrayMemberValue;
 import javassist.bytecode.annotation.MemberValue;
 import javassist.bytecode.annotation.StringMemberValue;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -22,7 +24,7 @@ import java.util.stream.Collectors;
  */
 public class RestServiceCreater {
     // 先用slf4j调试, 框架正式打包的时候改用jul
-    private Logger logger = LoggerFactory.getLogger(RestServiceCreater.class);
+    private Logger logger = Logger.getLogger(RestServiceCreater.class.getName());
 
     private ClassPool classPool = new ClassPool(true);
     private ClassLoader classLoader;
@@ -52,7 +54,7 @@ public class RestServiceCreater {
      * 根据XML配置，创建对应的实体类
      */
     private void createModel() {
-        logger.debug("创建实体类中...");
+        logger.log(Level.INFO, "创建实体类中...");
         xmlLoader.getTables().forEach((name, table) -> {
             // 类名首字母大写
             var fullName = xmlLoader.getModelPackage() + "." + name.substring(0, 1).toUpperCase() + name.substring(1);
@@ -84,15 +86,15 @@ public class RestServiceCreater {
             });
             try {
                 // 写写写class 如果日志级别为debug XDDDD
-                if (logger.isDebugEnabled()) obj.writeFile(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
+                obj.writeFile(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
                 obj.toClass(classLoader, null);
 //                obj.detach();
-                logger.debug("已创建实体类: {}", fullName);
+                logger.log(Level.FINE, "已创建实体类: {}", fullName);
             } catch (CannotCompileException | IOException e) {
                 e.printStackTrace();
             }
         });
-        logger.debug("创建实体类: ok");
+        logger.log(Level.INFO, "创建实体类: ok");
     }
 
     /**
@@ -133,7 +135,7 @@ public class RestServiceCreater {
             // 添加getObj方法
             var getObjBodyBuilder = new StringBuilder();
             getObjBodyBuilder.append("{");
-            getObjBodyBuilder.append("   cn.anayoo.sweetPotato.db.DatabasePool pool = cn.anayoo.sweetPotato.db.DatabasePool.getInstance();");
+            getObjBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
             getObjBodyBuilder.append("   java.sql.Connection conn = pool.getConn(\"").append(table.getDatasource()).append("\");");
             var objArgs = table.getFields().stream().map(Field::getValue).collect(Collectors.toList()).toString();
             objArgs = objArgs.substring(1, objArgs.length() - 1);
@@ -202,7 +204,7 @@ public class RestServiceCreater {
             }
             var getObjsBodyBuilder = new StringBuilder();
             getObjsBodyBuilder.append("{");
-            getObjsBodyBuilder.append("   cn.anayoo.sweetPotato.db.DatabasePool pool = cn.anayoo.sweetPotato.db.DatabasePool.getInstance();");
+            getObjsBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
             getObjsBodyBuilder.append("   java.sql.Connection conn = pool.getConn(\"").append(table.getDatasource()).append("\");");
             var objsArgs = table.getFields().stream().map(Field::getValue).collect(Collectors.toList()).toString();
             objsArgs = objsArgs.substring(1, objsArgs.length() - 1);
@@ -263,9 +265,6 @@ public class RestServiceCreater {
             }
         });
         this.writeClassFile(getterService, getterClassName + ".class");
-//        var classFile = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath() + "GetterService.class");
-//        if (classFile.exists()) classFile.delete();
-//        getterService.writeFile(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
     }
 
     /**
@@ -300,7 +299,7 @@ public class RestServiceCreater {
                     postObjBodyBuilder.append("      return javax.ws.rs.core.Response.status(400).entity(\"\\\"参数'").append(field.getValue()).append("'校验错误!\\\"\").build();}");
                 }
             }
-            postObjBodyBuilder.append("   cn.anayoo.sweetPotato.db.DatabasePool pool = cn.anayoo.sweetPotato.db.DatabasePool.getInstance();");
+            postObjBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
             postObjBodyBuilder.append("   java.sql.Connection conn = pool.getConn(\"").append(table.getDatasource()).append("\");");
             // insert语句
             postObjBodyBuilder.append("   java.lang.String prepareSQL = \"insert into ").append(table.getValue()).append(" (");
@@ -347,9 +346,6 @@ public class RestServiceCreater {
             }
         });
         this.writeClassFile(posterService, posterClassName + ".class");
-//        var classFile = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath() + "PosterService.class");
-//        if (classFile.exists()) classFile.delete();
-//        posterService.writeFile(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
     }
 
 
@@ -387,7 +383,7 @@ public class RestServiceCreater {
                     putObjBodyBuilder.append("      return javax.ws.rs.core.Response.status(400).entity(\"\\\"参数'").append(field.getValue()).append("'校验错误!\\\"\").build();}");
                 }
             }
-            putObjBodyBuilder.append("   cn.anayoo.sweetPotato.db.DatabasePool pool = cn.anayoo.sweetPotato.db.DatabasePool.getInstance();");
+            putObjBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
             putObjBodyBuilder.append("   java.sql.Connection conn = pool.getConn(\"").append(table.getDatasource()).append("\");");
             // selectByKey
             putObjBodyBuilder.append("   java.lang.String prepareSQL = \"select 1 from ").append(table.getValue()).append(" where ");
@@ -487,9 +483,6 @@ public class RestServiceCreater {
             }
         });
         this.writeClassFile(putterService, putterClassName + ".class");
-//        var classFile = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getPath() + "PutterService.class");
-//        if (classFile.exists()) classFile.delete();
-//        putterService.writeFile(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
     }
 
 
@@ -524,7 +517,7 @@ public class RestServiceCreater {
                     deleteObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"未指明主键\\\"\").build(); }");
                 }
             }
-            deleteObjBodyBuilder.append("   cn.anayoo.sweetPotato.db.DatabasePool pool = cn.anayoo.sweetPotato.db.DatabasePool.getInstance();");
+            deleteObjBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
             deleteObjBodyBuilder.append("   java.sql.Connection conn = pool.getConn(\"").append(table.getDatasource()).append("\");");
             // delete语句
             deleteObjBodyBuilder.append("   java.lang.String prepareSQL = \"delete from ").append(table.getValue()).append(" where ");
