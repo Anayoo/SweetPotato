@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <!-- 可以没有config配置，若无config配置，以下各项均使用默认值 -->
+    <config>
+        <!-- pageSize默认值10 -->
+        <!-- modelPackage默认值cn.anayoo.sweetpotato.run.model -->
+        <!-- servicePackage默认值cn.anayoo.sweetpotato.run.service -->
+        <pageSize>15</pageSize>
+        <modelPackage>cn.anayoo.sweetpotato.demo.model</modelPackage>
+        <servicePackage>cn.anayoo.sweetpotato.demo.service</servicePackage>
+    </config>
+
+    <!-- 目前仅支持mysql数据库 -->
+    <datasource name="default">
+        <url>jdbc:mysql://127.0.0.1:3306/test</url>
+        <username>root</username>
+        <password>123456</password>
+    </datasource>
+<!--    <datasource name="test">-->
+<!--        <url>jdbc:mysql://localhost:3306/test</url>-->
+<!--        <username>root</username>-->
+<!--        <password>root</password>-->
+<!--    </datasource>-->
+
+    <!-- name: 影响model类的名称，datasource：使用的数据源，value：数据库表名 -->
+    <!-- key和order若不配置，默认为第一个field的value -->
+    <!-- gets若不配置，默认为url + "s" -->
+    <!-- pageSize若不配置，默认为config中配置的pageSize -->
+    <!-- orderType若不配置，默认为asc -->
+    <table name="user" datasource="default" value="test_user" url="user" gets="users" pageSize="16" orderType="asc" key="id" order="id">
+        <!-- name：无实际意义，value：数据库字段名，regex：字段合法性校验的正则表达式(type为String时有效) -->
+        <!-- type目前支持int和String -->
+        <!-- autoInc、allowRepeat、allowNone目前没有意义 -->
+        <field name="标识" value="id" type="int" autoInc="true" />
+        <field name="用户名" value="username" type="String" regex="^[A-Za-z0-9]{6,16}$" allowRepeat="false" allowNone="false" />
+        <field name="密码" value="password" type="String" allowNone="false" />
+    </table>
+</root>
