@@ -228,7 +228,7 @@ public class RestServiceCreater {
             getObjsBodyBuilder.append("   java.lang.String whereStr = isNull ? \"\" : \" where \" + where.toString();");
             getObjsBodyBuilder.append("   int limitStart = $").append(table.getFields().size() + 1).append(" * ($").append(table.getFields().size() + 2).append(" - 1);");
             getObjsBodyBuilder.append("   java.lang.String prepareSQL = \"select ").append(objsArgs).append(" from ").append(table.getValue()).append("\" + ").append("whereStr").append(" + \" order by \" + ").append("$").append(table.getFields().size() + 3).append(" + \" \" + $").append(table.getFields().size() + 4).append(" + \" limit \" + limitStart + \",\" + $").append(table.getFields().size() + 1).append(" + \";\";");
-            //getObjsBodyBuilder.append("   System.out.println(prepareSQL);");
+            getObjsBodyBuilder.append("   System.out.println(prepareSQL);");
             getObjsBodyBuilder.append("   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);");
             getObjsBodyBuilder.append("   int i = 1;");
             //IntStream.range(0, fields.size()).mapToObj(i -> fields.get(i).getType().equals("Integer") ? getObjsBodyBuilder.append("   if ($").append(i + 1).append(" != null) {stmt.setInt(i, $").append(i + 1).append(".intValue());}").append("   i ++;") : getObjsBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {stmt.setString(i, $").append(i + 1).append(");}").append("   i ++;"));
@@ -294,8 +294,11 @@ public class RestServiceCreater {
             postObjBodyBuilder.append("{");
             // 参数校验
             for (Field field : fields) {
+                if (!field.isAllowNone()) {
+                    postObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"属性").append(field.getValue()).append("不能为空\\\"\").build(); }");
+                }
                 if (field.getType().equals("String")) {
-                    postObjBodyBuilder.append("   if (!java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("()).find()) {");
+                    postObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() != null && !java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("()).find()) {");
                     postObjBodyBuilder.append("      return javax.ws.rs.core.Response.status(400).entity(\"\\\"参数'").append(field.getValue()).append("'校验错误!\\\"\").build();}");
                 }
             }
@@ -321,6 +324,7 @@ public class RestServiceCreater {
                 }
             }
             postObjBodyBuilder.append(");\";");
+            postObjBodyBuilder.append("   System.out.println(prepareSQL);");
             postObjBodyBuilder.append("   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);");
             // stmt赋值
             var index = 1;
@@ -376,10 +380,11 @@ public class RestServiceCreater {
             putObjBodyBuilder.append("{");
             // 参数校验
             for (Field field : fields) {
-                if (field.getValue().equals(table.getKey())) {
-                    putObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"未指明主键\\\"\").build(); }");
-                } else if (field.getType().equals("String")) {
-                    putObjBodyBuilder.append("   if (!java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("()).find()) {");
+                if (field.getValue().equals(table.getKey()) || !field.isAllowNone()) {
+                    putObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"属性").append(field.getValue()).append("不能为空\\\"\").build(); }");
+                }
+                if (field.getType().equals("String")) {
+                    putObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() != null && !java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("()).find()) {");
                     putObjBodyBuilder.append("      return javax.ws.rs.core.Response.status(400).entity(\"\\\"参数'").append(field.getValue()).append("'校验错误!\\\"\").build();}");
                 }
             }
@@ -392,6 +397,7 @@ public class RestServiceCreater {
                     putObjBodyBuilder.append(field.getValue()).append("=?;\";");
                 }
             }
+            putObjBodyBuilder.append("   System.out.println(prepareSQL);");
             putObjBodyBuilder.append("   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);");
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey())) {
@@ -422,6 +428,7 @@ public class RestServiceCreater {
                     putObjBodyBuilder.append(field.getValue()).append("=?;\";");
                 }
             }
+            putObjBodyBuilder.append("   System.out.println(prepareSQL);");
             putObjBodyBuilder.append("   stmt = conn.prepareStatement(prepareSQL);");
             // stmt赋值
             var index = 1;
@@ -459,6 +466,7 @@ public class RestServiceCreater {
                 isFirst = false;
             }
             putObjBodyBuilder.append(");\";");
+            putObjBodyBuilder.append("   System.out.println(prepareSQL);");
             putObjBodyBuilder.append("   stmt = conn.prepareStatement(prepareSQL);");
             // stmt赋值
             index = 1;
@@ -526,6 +534,7 @@ public class RestServiceCreater {
                     deleteObjBodyBuilder.append(field.getValue()).append("=?;\";");
                 }
             }
+            deleteObjBodyBuilder.append("   System.out.println(prepareSQL);");
             deleteObjBodyBuilder.append("   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);");
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey())) {

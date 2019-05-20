@@ -16,9 +16,9 @@ public class MainTest {
 
         var clazz = this.getClass().getClassLoader().loadClass(xmlLoader.getServicePackage() + ".GetterService");
         var obj = clazz.getDeclaredConstructor().newInstance();
-        var m = clazz.getMethod("getUser", Integer.class, String.class, String.class);
-        var res = m.invoke(obj, 1, "", "");
-        var m1 = res.getClass().getMethod("getUsername");
+        var m = clazz.getMethod("getPcr", Integer.class, String.class, String.class, String.class, String.class, Integer.class, String.class, String.class, String.class, String.class);
+        var res = m.invoke(obj, 1, "", "", "", "", null, "", "", "", "");
+        var m1 = res.getClass().getMethod("getDevice_id");
         System.out.println(m1.invoke(res));
     }
 }
