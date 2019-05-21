@@ -614,7 +614,7 @@ public class RestServiceCreater {
                 {}, {"value"}, {"value"}, {"value"}
         };
         var jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", getterServiceConst), getterServiceConst);
-        jsonArrayMemberValue.setValue(new MemberValue[]{new StringMemberValue("application/json", getterServiceConst)});
+        jsonArrayMemberValue.setValue(new MemberValue[]{new StringMemberValue("application/json;charset=utf-8", getterServiceConst)});
         var memberValues = new MemberValue[][] {
                 {}, {new StringMemberValue("/" + url, getterServiceConst)}, {jsonArrayMemberValue}, {jsonArrayMemberValue}
         };
@@ -643,7 +643,7 @@ public class RestServiceCreater {
                 {}, {"value"}, {"value"}, {"value"}
         };
         var jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", serviceConst), serviceConst);
-        jsonArrayMemberValue.setValue(new MemberValue[]{new StringMemberValue("application/json", serviceConst)});
+        jsonArrayMemberValue.setValue(new MemberValue[]{new StringMemberValue("application/json;charset=utf-8", serviceConst)});
         var memberValues = new MemberValue[][] {
                 {}, {new StringMemberValue("/" + url, serviceConst)}, {jsonArrayMemberValue}, {jsonArrayMemberValue}
         };

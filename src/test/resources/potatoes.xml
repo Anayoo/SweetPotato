@@ -12,7 +12,7 @@
 
     <!-- 目前仅支持mysql数据库 -->
     <datasource name="default">
-        <url>jdbc:mysql://127.0.0.1:3306/test</url>
+        <url>jdbc:mysql://127.0.0.1:3306/test?useUnicode=yes&amp;characterEncoding=UTF-8</url>
         <username>root</username>
         <password>123456</password>
     </datasource>
