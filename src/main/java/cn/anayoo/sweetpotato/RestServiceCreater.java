@@ -85,12 +85,11 @@ public class RestServiceCreater {
 
             });
             try {
-                // 写写写class 如果日志级别为debug XDDDD
-                obj.writeFile(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
+                // model类可以不写到磁盘，因为每次调用http接口不需要重新加载model的class
+                //obj.writeFile(getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
                 obj.toClass(classLoader, null);
-//                obj.detach();
                 logger.log(Level.FINE, "已创建实体类: {}", fullName);
-            } catch (CannotCompileException | IOException e) {
+            } catch (CannotCompileException e) {
                 e.printStackTrace();
             }
         });
@@ -141,7 +140,7 @@ public class RestServiceCreater {
             objArgs = objArgs.substring(1, objArgs.length() - 1);
             getObjBodyBuilder.append("   java.lang.StringBuilder where = new java.lang.StringBuilder();");
             getObjBodyBuilder.append("   boolean isNull = true;");
-            //IntStream.range(0, fields.size()).mapToObj(i -> fields.get(i).getType().equals("Integer") ? getObjBodyBuilder.append("   if ($").append(i + 1).append(" != null) {").append("      if (!isNull) where.append(\" and \");").append("      where.append(\"").append(table.getFields().get(i).getValue()).append("=?\");").append("      isNull = false;}") : getObjBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {").append("      if (!isNull) where.append(\" and \");").append("      where.append(\"").append(table.getFields().get(i).getValue()).append("=?\");").append("      isNull = false;}"));
+
             for (int i = 0; i < table.getFields().size(); i ++) {
                 switch (table.getFields().get(i).getType()) {
                     case "int" :     getObjBodyBuilder.append("   if ($").append(i + 1).append(" != null) {");
@@ -161,7 +160,7 @@ public class RestServiceCreater {
             getObjBodyBuilder.append("   System.out.println(prepareSQL);");
             getObjBodyBuilder.append("   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);");
             getObjBodyBuilder.append("   int i = 1;");
-            //IntStream.range(0, fields.size()).mapToObj(i -> fields.get(i).getType().equals("Integer") ? getObjBodyBuilder.append("   if ($").append(i + 1).append(" != null) {stmt.setInt(i, $").append(i + 1).append(".intValue());}").append("   i ++;") : getObjBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {stmt.setString(i, $").append(i + 1).append(");}").append("   i ++;"));
+
             for (int i = 0; i < table.getFields().size(); i ++) {
                 switch (table.getFields().get(i).getType()) {
                     case "int" :     getObjBodyBuilder.append("   if ($").append(i + 1).append(" != null) {stmt.setInt(i, $").append(i + 1).append(".intValue());").append("   i ++;}"); break;
@@ -173,12 +172,12 @@ public class RestServiceCreater {
             // 如果存在多个结果(查询中未使用主键，那么返回最后一条记录)
             getObjBodyBuilder.append("   rs.last();");
             getObjBodyBuilder.append("   if (rs.getRow() > 0) {");
-            //IntStream.range(0, fields.size()).mapToObj(i -> fields.get(i).getType().equals("Integer") ? getObjBodyBuilder.append("      arg.set").append(fields.get(i).getValue().substring(0, 1).toUpperCase()).append(fields.get(i).getValue().substring(1)).append("(Integer.valueOf(rs.getInt(\"").append(fields.get(i).getValue()).append("\")));") : getObjBodyBuilder.append("      arg.set").append(fields.get(i).getValue().substring(0, 1).toUpperCase()).append(fields.get(i).getValue().substring(1)).append("(rs.getString(\"").append(fields.get(i).getValue()).append("\"));"));
+
             for (int i = 0; i < table.getFields().size(); i ++) {
                 var field = table.getFields().get(i);
                 switch (field.getType()) {
-                    case "int" :     getObjBodyBuilder.append("      arg.set").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("(Integer.valueOf(rs.getInt(\"").append(field.getValue()).append("\")));"); break;
-                    case "String" :  getObjBodyBuilder.append("      arg.set").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("(rs.getString(\"").append(field.getValue()).append("\"));"); break;
+                    case "int" :     getObjBodyBuilder.append("      arg.").append(field.getSetterName()).append("(Integer.valueOf(rs.getInt(\"").append(field.getValue()).append("\")));"); break;
+                    case "String" :  getObjBodyBuilder.append("      arg.").append(field.getSetterName()).append("(rs.getString(\"").append(field.getValue()).append("\"));"); break;
                 }
             }
             getObjBodyBuilder.append("   } else arg = null;");
@@ -210,7 +209,7 @@ public class RestServiceCreater {
             objsArgs = objsArgs.substring(1, objsArgs.length() - 1);
             getObjsBodyBuilder.append("   java.lang.StringBuilder where = new java.lang.StringBuilder();");
             getObjsBodyBuilder.append("   boolean isNull = true;");
-            //IntStream.range(0, fields.size()).mapToObj(i -> fields.get(i).getType().equals("Integer") ? getObjsBodyBuilder.append("   if ($").append(i + 1).append(" != null) {").append("      if (!isNull) where.append(\" and \");").append("      where.append(\"").append(table.getFields().get(i).getValue()).append("=?\");").append("      isNull = false;}") : getObjsBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {").append("      if (!isNull) where.append(\" and \");").append("      where.append(\"").append(table.getFields().get(i).getValue()).append("=?\");").append("      isNull = false;}"));
+
             for (int i = 0; i < table.getFields().size(); i ++) {
                 switch (table.getFields().get(i).getType()) {
                     case "int" : getObjsBodyBuilder.append("   if ($").append(i + 1).append(" != null) {");
@@ -231,7 +230,7 @@ public class RestServiceCreater {
             getObjsBodyBuilder.append("   System.out.println(prepareSQL);");
             getObjsBodyBuilder.append("   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);");
             getObjsBodyBuilder.append("   int i = 1;");
-            //IntStream.range(0, fields.size()).mapToObj(i -> fields.get(i).getType().equals("Integer") ? getObjsBodyBuilder.append("   if ($").append(i + 1).append(" != null) {stmt.setInt(i, $").append(i + 1).append(".intValue());}").append("   i ++;") : getObjsBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {stmt.setString(i, $").append(i + 1).append(");}").append("   i ++;"));
+
             for (int i = 0; i < table.getFields().size(); i ++) {
                 switch (table.getFields().get(i).getType()) {
                     case "int" :     getObjsBodyBuilder.append("   if ($").append(i + 1).append(" != null) {stmt.setInt(i, $").append(i + 1).append(".intValue());").append("   i ++;}"); break;
@@ -242,12 +241,12 @@ public class RestServiceCreater {
             getObjsBodyBuilder.append("   java.util.List args = new java.util.ArrayList();");
             getObjsBodyBuilder.append("   while(rs.next()) {");
             getObjsBodyBuilder.append("      ").append(fullPath).append(" arg = new ").append(fullPath).append("();");
-            //IntStream.range(0, fields.size()).mapToObj(i -> fields.get(i).getType().equals("Integer") ? getObjsBodyBuilder.append("      arg.set").append(fields.get(i).getValue().substring(0, 1).toUpperCase()).append(fields.get(i).getValue().substring(1)).append("(Integer.valueOf(rs.getInt(\"").append(fields.get(i).getValue()).append("\")));") : getObjsBodyBuilder.append("      arg.set").append(fields.get(i).getValue().substring(0, 1).toUpperCase()).append(fields.get(i).getValue().substring(1)).append("(rs.getString(\"").append(fields.get(i).getValue()).append("\"));"));
+
             for (int i = 0; i < table.getFields().size(); i ++) {
                 var field = table.getFields().get(i);
                 switch (field.getType()) {
-                    case "int" :    getObjsBodyBuilder.append("      arg.set").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("(Integer.valueOf(rs.getInt(\"").append(field.getValue()).append("\")));"); break;
-                    case "String" : getObjsBodyBuilder.append("      arg.set").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("(rs.getString(\"").append(field.getValue()).append("\"));"); break;
+                    case "int" :    getObjsBodyBuilder.append("      arg.").append(field.getSetterName()).append("(Integer.valueOf(rs.getInt(\"").append(field.getValue()).append("\")));"); break;
+                    case "String" : getObjsBodyBuilder.append("      arg.").append(field.getSetterName()).append("(rs.getString(\"").append(field.getValue()).append("\"));"); break;
                 }
             }
             getObjsBodyBuilder.append("      args.add(arg);");
@@ -295,10 +294,10 @@ public class RestServiceCreater {
             // 参数校验
             for (Field field : fields) {
                 if (!field.isAllowNone()) {
-                    postObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"属性").append(field.getValue()).append("不能为空\\\"\").build(); }");
+                    postObjBodyBuilder.append("   if ($1.").append(field.getGetterName()).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"属性").append(field.getValue()).append("不能为空\\\"\").build(); }");
                 }
                 if (field.getType().equals("String")) {
-                    postObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() != null && !java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("()).find()) {");
+                    postObjBodyBuilder.append("   if ($1.").append(field.getGetterName()).append("() != null && !java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.").append(field.getGetterName()).append("()).find()) {");
                     postObjBodyBuilder.append("      return javax.ws.rs.core.Response.status(400).entity(\"\\\"参数'").append(field.getValue()).append("'校验错误!\\\"\").build();}");
                 }
             }
@@ -331,8 +330,8 @@ public class RestServiceCreater {
             for (Field field : fields) {
                 if (!field.getValue().equals(table.getKey())) {
                     switch (field.getType()) {
-                        case "int" : postObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("().intValue());"); break;
-                        case "String" : postObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("());"); break;
+                        case "int" : postObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.").append(field.getGetterName()).append("().intValue());"); break;
+                        case "String" : postObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.").append(field.getGetterName()).append("());"); break;
                     }
                     index = index + 1;
                 }
@@ -381,10 +380,10 @@ public class RestServiceCreater {
             // 参数校验
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey()) || !field.isAllowNone()) {
-                    putObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"属性").append(field.getValue()).append("不能为空\\\"\").build(); }");
+                    putObjBodyBuilder.append("   if ($1.").append(field.getGetterName()).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"属性").append(field.getValue()).append("不能为空\\\"\").build(); }");
                 }
                 if (field.getType().equals("String")) {
-                    putObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() != null && !java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("()).find()) {");
+                    putObjBodyBuilder.append("   if ($1.").append(field.getGetterName()).append("() != null && !java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.").append(field.getGetterName()).append("()).find()) {");
                     putObjBodyBuilder.append("      return javax.ws.rs.core.Response.status(400).entity(\"\\\"参数'").append(field.getValue()).append("'校验错误!\\\"\").build();}");
                 }
             }
@@ -435,8 +434,8 @@ public class RestServiceCreater {
             for (Field field : fields) {
                 if (!field.getValue().equals(table.getKey())) {
                     switch (field.getType()) {
-                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("().intValue());"); break;
-                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("());"); break;
+                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.").append(field.getGetterName()).append("().intValue());"); break;
+                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.").append(field.getGetterName()).append("());"); break;
                     }
                     index = index + 1;
                 }
@@ -444,8 +443,8 @@ public class RestServiceCreater {
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey())) {
                     switch (field.getType()) {
-                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("().intValue());"); break;
-                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("());"); break;
+                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.").append(field.getGetterName()).append("().intValue());"); break;
+                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.").append(field.getGetterName()).append("());"); break;
                     }
                     index = index + 1;
                 }
@@ -472,8 +471,8 @@ public class RestServiceCreater {
             index = 1;
             for (Field field : fields) {
                 switch (field.getType()) {
-                    case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("().intValue());"); break;
-                    case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("());"); break;
+                    case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.").append(field.getGetterName()).append("().intValue());"); break;
+                    case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.").append(field.getGetterName()).append("());"); break;
                 }
                 index = index + 1;
             }
@@ -522,7 +521,7 @@ public class RestServiceCreater {
             // 参数校验
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey())) {
-                    deleteObjBodyBuilder.append("   if ($1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"未指明主键\\\"\").build(); }");
+                    deleteObjBodyBuilder.append("   if ($1.").append(field.getGetterName()).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"未指明主键\\\"\").build(); }");
                 }
             }
             deleteObjBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
@@ -539,8 +538,8 @@ public class RestServiceCreater {
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey())) {
                     switch (field.getType()) {
-                        case "int" : deleteObjBodyBuilder.append("   stmt.setInt(1, $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("().intValue());"); break;
-                        case "String" : deleteObjBodyBuilder.append("   stmt.setString(1, $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("());"); break;
+                        case "int" : deleteObjBodyBuilder.append("   stmt.setInt(1, $1.").append(field.getGetterName()).append("().intValue());"); break;
+                        case "String" : deleteObjBodyBuilder.append("   stmt.setString(1, $1.").append(field.getGetterName()).append("());"); break;
                     }
                 }
             }

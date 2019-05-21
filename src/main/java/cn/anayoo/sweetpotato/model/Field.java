@@ -10,6 +10,9 @@ public class Field {
     private boolean allowRepeat = true;
     private boolean allowNone = true;
 
+    private String setterName;
+    private String getterName;
+
     public Field() {
     }
 
@@ -17,6 +20,8 @@ public class Field {
         this.name = name;
         this.value = value;
         this.type = type;
+        this.setterName = "set" + value.substring(0, 1).toUpperCase() + value.substring(1);
+        this.getterName = "get" + value.substring(0, 1).toUpperCase() + value.substring(1);
     }
 
     public Field(String name, String value, String type, String regex) {
@@ -24,6 +29,8 @@ public class Field {
         this.value = value;
         this.type = type;
         this.regex = regex;
+        this.setterName = "set" + value.substring(0, 1).toUpperCase() + value.substring(1);
+        this.getterName = "get" + value.substring(0, 1).toUpperCase() + value.substring(1);
     }
 
     public Field(String name, String value, String type, String regex, boolean autoInc, boolean allowRepeat, boolean allowNone) {
@@ -34,6 +41,8 @@ public class Field {
         this.autoInc = autoInc;
         this.allowRepeat = allowRepeat;
         this.allowNone = allowNone;
+        this.setterName = "set" + value.substring(0, 1).toUpperCase() + value.substring(1);
+        this.getterName = "get" + value.substring(0, 1).toUpperCase() + value.substring(1);
     }
 
     public String getName() {
@@ -50,6 +59,8 @@ public class Field {
 
     public void setValue(String value) {
         this.value = value;
+        this.setterName = "set" + value.substring(0, 1).toUpperCase() + value.substring(1);
+        this.getterName = "get" + value.substring(0, 1).toUpperCase() + value.substring(1);
     }
 
     public String getType() {
@@ -90,6 +101,14 @@ public class Field {
 
     public void setAllowNone(boolean allowNone) {
         this.allowNone = allowNone;
+    }
+
+    public String getSetterName() {
+        return setterName;
+    }
+
+    public String getGetterName() {
+        return getterName;
     }
 
     @Override

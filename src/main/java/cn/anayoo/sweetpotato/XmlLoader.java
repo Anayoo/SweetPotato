@@ -13,7 +13,7 @@ import java.util.*;
 
 /**
  * 读取并解析XML配置文件
- * 按Java11特性更新了代码, 更像python了...
+ * 按Java11特性更新了代码...
  * Created by anayoo on 19-05-13
  * @author anayoo
  */
@@ -22,8 +22,12 @@ public class XmlLoader implements Cloneable {
 
     private Hashtable<String, HikariConfig> hikariConfigs = new Hashtable<>();
     private Hashtable<String, Table> tables = new Hashtable<>();
-    private String modelPackage = "cn.anayoo.sweetPotato.run.model";
-    private String servicePackage = "cn.anayoo.sweetPotato.run.service";
+    private String modelPackage = "cn.anayoo.sweetpotato.run.model";
+    private String servicePackage = "cn.anayoo.sweetpotato.run.service";
+
+    private int defaultPageSize = 10;
+    // 默认连接超时时间1s
+    private int defaultTimeout = 1000;
 
     synchronized XmlLoader read(String src) throws DocumentException {
         var s = src.startsWith("/") ? src : Objects.requireNonNull(this.getClass().getClassLoader().getResource("")).getPath() + src;
@@ -32,7 +36,7 @@ public class XmlLoader implements Cloneable {
         var root =  doc.getRootElement();
         // 读全局配置
         var config = root.element("config");
-        var defaultPageSize = config == null ? 10 : config.elementText("pageSize") == null ? 10 : Integer.parseInt(config.elementText("pageSize"));
+        defaultPageSize = config == null ? defaultPageSize : config.elementText("pageSize") == null && !this.canPraseInt(config.elementText("pageSize")) ? defaultPageSize : Integer.parseInt(config.elementText("pageSize"));
         modelPackage = config == null ? modelPackage : config.elementText("modelPackage") == null ? modelPackage : config.elementText("modelPackage");
         servicePackage = config == null ? servicePackage : config.elementText("servicePackage") == null ? servicePackage : config.elementText("servicePackage");
 
@@ -42,8 +46,8 @@ public class XmlLoader implements Cloneable {
             hikariConfig.setJdbcUrl(datasource.elementText("url"));
             hikariConfig.setUsername(datasource.elementText("username"));
             hikariConfig.setPassword(datasource.elementText("password"));
+            hikariConfig.setConnectionTimeout(datasource.elementText("connectionTimeout") == null && !this.canPraseInt(datasource.elementText("connectionTimeout")) ? this.defaultTimeout : Integer.parseInt(datasource.elementText("connectionTimeout")));
             // 写死了，目前仅支持mysql。
-            hikariConfig.setConnectionTimeout(1000);
             hikariConfig.setDriverClassName("com.mysql.jdbc.Driver");
             hikariConfigs.put(datasource.attributeValue("name"), hikariConfig);
         });
@@ -89,6 +93,20 @@ public class XmlLoader implements Cloneable {
             e.printStackTrace();
         }
         return this;
+    }
+
+    /**
+     * 尝试性转换，用以保持函数式代码风格
+     * @param str
+     * @return
+     */
+    private boolean canPraseInt(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     public Hashtable<String, HikariConfig> getHikariConfigs() {
