@@ -378,12 +378,13 @@ public class RestServiceCreater {
             var putObjBodyBuilder = new StringBuilder();
             putObjBodyBuilder.append("{");
             // 参数校验
+            putObjBodyBuilder.append("   if ($1 == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"未指明主键\\\"\").build(); }");
             for (Field field : fields) {
-                if (field.getValue().equals(table.getKey()) || !field.isAllowNone()) {
-                    putObjBodyBuilder.append("   if ($1.").append(field.getGetterName()).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"属性").append(field.getValue()).append("不能为空\\\"\").build(); }");
+                if (!field.isAllowNone()) {
+                    putObjBodyBuilder.append("   if ($2.").append(field.getGetterName()).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"属性").append(field.getValue()).append("不能为空\\\"\").build(); }");
                 }
                 if (field.getType().equals("String")) {
-                    putObjBodyBuilder.append("   if ($1.").append(field.getGetterName()).append("() != null && !java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($1.").append(field.getGetterName()).append("()).find()) {");
+                    putObjBodyBuilder.append("   if ($2.").append(field.getGetterName()).append("() != null && !java.util.regex.Pattern.compile(\"").append(field.getRegex().replaceAll("\\\\", "\\\\\\\\")).append("\").matcher($2.").append(field.getGetterName()).append("()).find()) {");
                     putObjBodyBuilder.append("      return javax.ws.rs.core.Response.status(400).entity(\"\\\"参数'").append(field.getValue()).append("'校验错误!\\\"\").build();}");
                 }
             }
@@ -401,8 +402,8 @@ public class RestServiceCreater {
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey())) {
                     switch (field.getType()) {
-                        case "int" : putObjBodyBuilder.append("   stmt.setInt(1, $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("().intValue());"); break;
-                        case "String" : putObjBodyBuilder.append("   stmt.setString(1, $1.get").append(field.getValue().substring(0, 1).toUpperCase()).append(field.getValue().substring(1)).append("());"); break;
+                        case "int" : putObjBodyBuilder.append("   stmt.setInt(1, $1.intValue());"); break;
+                        case "String" : putObjBodyBuilder.append("   stmt.setString(1, $1);"); break;
                     }
                 }
             }
@@ -434,8 +435,8 @@ public class RestServiceCreater {
             for (Field field : fields) {
                 if (!field.getValue().equals(table.getKey())) {
                     switch (field.getType()) {
-                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.").append(field.getGetterName()).append("().intValue());"); break;
-                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.").append(field.getGetterName()).append("());"); break;
+                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $2.").append(field.getGetterName()).append("().intValue());"); break;
+                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $2.").append(field.getGetterName()).append("());"); break;
                     }
                     index = index + 1;
                 }
@@ -443,8 +444,8 @@ public class RestServiceCreater {
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey())) {
                     switch (field.getType()) {
-                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.").append(field.getGetterName()).append("().intValue());"); break;
-                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.").append(field.getGetterName()).append("());"); break;
+                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.intValue());"); break;
+                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1);"); break;
                     }
                     index = index + 1;
                 }
@@ -470,9 +471,16 @@ public class RestServiceCreater {
             // stmt赋值
             index = 1;
             for (Field field : fields) {
-                switch (field.getType()) {
-                    case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.").append(field.getGetterName()).append("().intValue());"); break;
-                    case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1.").append(field.getGetterName()).append("());"); break;
+                if (field.getValue().equals(table.getKey())) {
+                    switch (field.getType()) {
+                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $1.intValue());"); break;
+                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $1);"); break;
+                    }
+                } else {
+                    switch (field.getType()) {
+                        case "int" : putObjBodyBuilder.append("   stmt.setInt(").append(index).append(", $2.").append(field.getGetterName()).append("().intValue());"); break;
+                        case "String" : putObjBodyBuilder.append("   stmt.setString(").append(index).append(", $2.").append(field.getGetterName()).append("());"); break;
+                    }
                 }
                 index = index + 1;
             }
@@ -483,8 +491,23 @@ public class RestServiceCreater {
 
             var putObjBody = putObjBodyBuilder.toString();
             //System.out.println(putObjBody.replaceAll("   ", "\n   "));
+            // 方法入参
+            var args = new ArrayList<CtClass>();
+            for (Field field : fields) {
+                if (field.getValue().equals(table.getKey())) {
+                    try {
+                        args.add(JavassistUtil.getCtClass(classPool, field.getType()));
+                    } catch (NotFoundException e) {
+                        // xml里配错了我也没啥办法，不是么
+                        e.printStackTrace();
+                    }
+                }
+            }
             try {
-                this.createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl(), new CtClass[]{classPool.get(fullPath)}, putterService, putObjBody, "PUT");
+                args.add(classPool.get(fullPath));
+                CtClass[] arg = new CtClass[args.size()];
+                args.toArray(arg);
+                this.createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl(), arg, putterService, putObjBody, "PUT");
             } catch (NotFoundException e) {
                 e.printStackTrace();
             }
@@ -519,11 +542,7 @@ public class RestServiceCreater {
             var deleteObjBodyBuilder = new StringBuilder();
             deleteObjBodyBuilder.append("{");
             // 参数校验
-            for (Field field : fields) {
-                if (field.getValue().equals(table.getKey())) {
-                    deleteObjBodyBuilder.append("   if ($1.").append(field.getGetterName()).append("() == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"未指明主键\\\"\").build(); }");
-                }
-            }
+            deleteObjBodyBuilder.append("   if ($1 == null) { return javax.ws.rs.core.Response.status(400).entity(\"\\\"未指明主键\\\"\").build(); }");
             deleteObjBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
             deleteObjBodyBuilder.append("   java.sql.Connection conn = pool.getConn(\"").append(table.getDatasource()).append("\");");
             // delete语句
@@ -538,8 +557,8 @@ public class RestServiceCreater {
             for (Field field : fields) {
                 if (field.getValue().equals(table.getKey())) {
                     switch (field.getType()) {
-                        case "int" : deleteObjBodyBuilder.append("   stmt.setInt(1, $1.").append(field.getGetterName()).append("().intValue());"); break;
-                        case "String" : deleteObjBodyBuilder.append("   stmt.setString(1, $1.").append(field.getGetterName()).append("());"); break;
+                        case "int" : deleteObjBodyBuilder.append("   stmt.setInt(1, $1.intValue());"); break;
+                        case "String" : deleteObjBodyBuilder.append("   stmt.setString(1, $1);"); break;
                     }
                 }
             }
@@ -549,8 +568,22 @@ public class RestServiceCreater {
 
             var deleteObjBody = deleteObjBodyBuilder.toString();
             //System.out.println(deleteObjBody.replaceAll("   ", "\n   "));
+            // 方法入参
+            var args = new ArrayList<CtClass>();
+            for (Field field : fields) {
+                if (field.getValue().equals(table.getKey())) {
+                    try {
+                        args.add(JavassistUtil.getCtClass(classPool, field.getType()));
+                    } catch (NotFoundException e) {
+                        // xml里配错了我也没啥办法，不是么
+                        e.printStackTrace();
+                    }
+                }
+            }
             try {
-                this.createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl(), new CtClass[]{classPool.get(fullPath)}, deleterService, deleteObjBody, "DELETE");
+                CtClass[] arg = new CtClass[args.size()];
+                args.toArray(arg);
+                this.createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl(), arg, deleterService, deleteObjBody, "DELETE");
             } catch (NotFoundException e) {
                 e.printStackTrace();
             }
@@ -558,7 +591,7 @@ public class RestServiceCreater {
         this.writeClassFile(deleterService, deleterClassName + ".class");
     }
 
-    private void createGetterMethod(CtClass returnType, String url, CtClass[] parameters, CtClass declaring, String body, Table table) {
+    private void createGetterMethod(CtClass returnType, String url, CtClass[] parameters, CtClass declaring, String body, Table table) throws NotFoundException {
         var getterServiceFile = declaring.getClassFile();
         var getterServiceConst = getterServiceFile.getConstPool();
         CtMethod m = null;
@@ -583,14 +616,25 @@ public class RestServiceCreater {
             // 根据 parameters 和 table.fields 的长度判断是否为SQL分页查询属性
             if (i < table.getFields().size()) {
                 var field = table.getFields().get(i);
-                // @QueryParam
-                var f1Annot1 = new Annotation("javax.ws.rs.QueryParam", getterServiceConst);
-                f1Annot1.addMemberValue("value", new StringMemberValue(field.getValue(), getterServiceConst));
-                paramArrays[i][1] = f1Annot1;
-                // @DefaultValue
-                var f1Annot2 = new Annotation("javax.ws.rs.DefaultValue", getterServiceConst);
-                f1Annot2.addMemberValue("value", new StringMemberValue("", getterServiceConst));
-                paramArrays[i][0] = f1Annot2;
+                if (!returnType.equals(classPool.get("java.util.List")) && field.getValue().equals(table.getKey())) {
+                    // @QueryParam
+                    var f1Annot1 = new Annotation("javax.ws.rs.PathParam", getterServiceConst);
+                    f1Annot1.addMemberValue("value", new StringMemberValue("key", getterServiceConst));
+                    paramArrays[i][1] = f1Annot1;
+                    // @DefaultValue
+                    var f1Annot2 = new Annotation("javax.ws.rs.DefaultValue", getterServiceConst);
+                    f1Annot2.addMemberValue("value", new StringMemberValue("", getterServiceConst));
+                    paramArrays[i][0] = f1Annot2;
+                } else {
+                    // @QueryParam
+                    var f1Annot1 = new Annotation("javax.ws.rs.QueryParam", getterServiceConst);
+                    f1Annot1.addMemberValue("value", new StringMemberValue(field.getValue(), getterServiceConst));
+                    paramArrays[i][1] = f1Annot1;
+                    // @DefaultValue
+                    var f1Annot2 = new Annotation("javax.ws.rs.DefaultValue", getterServiceConst);
+                    f1Annot2.addMemberValue("value", new StringMemberValue("", getterServiceConst));
+                    paramArrays[i][0] = f1Annot2;
+                }
             } else {
                 // @QueryParam
                 var f1Annot1 = new Annotation("javax.ws.rs.QueryParam", getterServiceConst);
@@ -615,7 +659,7 @@ public class RestServiceCreater {
         var jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", getterServiceConst), getterServiceConst);
         jsonArrayMemberValue.setValue(new MemberValue[]{new StringMemberValue("application/json;charset=utf-8", getterServiceConst)});
         var memberValues = new MemberValue[][] {
-                {}, {new StringMemberValue("/" + url, getterServiceConst)}, {jsonArrayMemberValue}, {jsonArrayMemberValue}
+                {}, {returnType.equals(classPool.get("java.util.List")) ? new StringMemberValue("/" + url, getterServiceConst) : new StringMemberValue("/" + url + "/{key:[A-Za-z0-9]+}", getterServiceConst)}, {jsonArrayMemberValue}, {jsonArrayMemberValue}
         };
         JavassistUtil.addAnnotation(getterServiceConst, m, annotationClasses, memberNames, memberValues);
     }
@@ -634,6 +678,31 @@ public class RestServiceCreater {
             e.printStackTrace();
         }
 
+        // 给参数增加注解 @QueryParam @DefaultValue    参考：https://www.cnblogs.com/coshaho/p/5105545.html
+        // 涉及到tables， 暂时不封装到JavassistUtil了 = =
+        if (method.equals("DELETE")) {
+            var parameterAtrribute = new ParameterAnnotationsAttribute(serviceConst, ParameterAnnotationsAttribute.visibleTag);
+            var paramArrays = new Annotation[parameters.length][1];
+            var annot1 = new Annotation("javax.ws.rs.PathParam", serviceConst);
+            annot1.addMemberValue("value", new StringMemberValue("key", serviceConst));
+            paramArrays[0][0] = annot1;
+            parameterAtrribute.setAnnotations(paramArrays);
+            if (m != null) m.getMethodInfo().addAttribute(parameterAtrribute);
+        }
+        if (method.equals("PUT")) {
+            var parameterAtrribute = new ParameterAnnotationsAttribute(serviceConst, ParameterAnnotationsAttribute.visibleTag);
+            var paramArrays = new Annotation[parameters.length][1];
+            var annot1 = new Annotation("javax.ws.rs.PathParam", serviceConst);
+            annot1.addMemberValue("value", new StringMemberValue("key", serviceConst));
+            paramArrays[0][0] = annot1;
+            var annot2 = new Annotation("javax.ws.rs.DefaultValue", serviceConst);
+            annot2.addMemberValue("value", new StringMemberValue("", serviceConst));
+            paramArrays[1][0] = annot2;
+            parameterAtrribute.setAnnotations(paramArrays);
+            if (m != null) m.getMethodInfo().addAttribute(parameterAtrribute);
+        }
+
+
         // 给方法增加注解@${method} @Path("/${url}") @Consumes({"application/json"}) @Produces({"application/json"})
         var annotationClasses = new String[] {
                 "javax.ws.rs." + method, "javax.ws.rs.Path", "javax.ws.rs.Consumes", "javax.ws.rs.Produces"
@@ -644,7 +713,7 @@ public class RestServiceCreater {
         var jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", serviceConst), serviceConst);
         jsonArrayMemberValue.setValue(new MemberValue[]{new StringMemberValue("application/json;charset=utf-8", serviceConst)});
         var memberValues = new MemberValue[][] {
-                {}, {new StringMemberValue("/" + url, serviceConst)}, {jsonArrayMemberValue}, {jsonArrayMemberValue}
+                {}, {method.equals("POST") ? new StringMemberValue("/" + url, serviceConst) : new StringMemberValue("/" + url + "/{key:[A-Za-z0-9]+}", serviceConst)}, {jsonArrayMemberValue}, {jsonArrayMemberValue}
         };
         JavassistUtil.addAnnotation(serviceConst, m, annotationClasses, memberNames, memberValues);
     }
