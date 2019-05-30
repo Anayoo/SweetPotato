@@ -7,3 +7,4 @@ create table test_user(
 );
 
 insert into test_user values (1, 'testuser', '123456');
+insert into test_user values (2, 'test', '234567');

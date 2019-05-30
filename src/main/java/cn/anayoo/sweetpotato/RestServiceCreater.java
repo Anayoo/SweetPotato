@@ -56,7 +56,7 @@ public class RestServiceCreater {
     private void createModel() {
         logger.log(Level.INFO, "创建实体类中...");
         xmlLoader.getTables().forEach((name, table) -> {
-            // 类名首字母大写
+            // 创建实体类
             var fullName = xmlLoader.getModelPackage() + "." + name.substring(0, 1).toUpperCase() + name.substring(1);
             var obj = classPool.makeClass(fullName);
             // 构造方法
@@ -92,6 +92,39 @@ public class RestServiceCreater {
             } catch (CannotCompileException e) {
                 e.printStackTrace();
             }
+
+            // 创建实体分页类
+            var pageFullName = fullName + "Page";
+            var objPage = classPool.makeClass(pageFullName);
+            // 构造方法
+            var objConstructorPage = new CtConstructor(new CtClass[] {}, objPage);
+            objConstructorPage.setModifiers(Modifier.PUBLIC);
+            try {
+                objConstructorPage.setBody("{}");
+                objPage.addConstructor(objConstructorPage);
+            } catch (CannotCompileException e) {
+                // 新创建的类设置构造方法应该不会出错2333
+                // forEach里不能抛出异常, 只能装做处理过了
+                e.printStackTrace();
+            }
+            // 属性字段
+            try {
+                var f1 = new CtField(JavassistUtil.getCtClass(classPool, "java.util.List"), "data", objPage);
+                f1.setModifiers(Modifier.PRIVATE);
+                objPage.addField(f1);
+                objPage.addMethod(CtNewMethod.setter("setData", f1));
+                objPage.addMethod(CtNewMethod.getter("getData", f1));
+                var f2 = new CtField(JavassistUtil.getCtClass(classPool, "cn.anayoo.sweetpotato.model.Setting"), "setting", objPage);
+                f2.setModifiers(Modifier.PRIVATE);
+                objPage.addField(f2);
+                objPage.addMethod(CtNewMethod.setter("setSetting", f2));
+                objPage.addMethod(CtNewMethod.getter("getSetting", f2));
+                objPage.toClass(classLoader, null);
+                logger.log(Level.FINE, "已创建实体类: {}", pageFullName);
+            } catch (CannotCompileException | NotFoundException e) {
+                // 报错我也没辙, xml自己没配好, 可以管但没必要, 打印异常就完了
+                e.printStackTrace();
+            }
         });
         logger.log(Level.INFO, "创建实体类: ok");
     }
@@ -118,6 +151,7 @@ public class RestServiceCreater {
         xmlLoader.getTables().forEach((name, table) -> {
             var className = table.getUrl().substring(0, 1).toUpperCase() + table.getUrl().substring(1);
             var fullPath = xmlLoader.getModelPackage() + "." + className;
+            var pageFullName = xmlLoader.getModelPackage() + "." + table.getName().substring(0, 1).toUpperCase() + table.getName().substring(1) + "Page";
             var fields = table.getFields();
 
             // 方法入参
@@ -136,21 +170,21 @@ public class RestServiceCreater {
             getObjBodyBuilder.append("{");
             getObjBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
             getObjBodyBuilder.append("   java.sql.Connection conn = pool.getConn(\"").append(table.getDatasource()).append("\");");
-            var objArgs = table.getFields().stream().map(Field::getValue).collect(Collectors.toList()).toString();
+            var objArgs = fields.stream().map(Field::getValue).collect(Collectors.toList()).toString();
             objArgs = objArgs.substring(1, objArgs.length() - 1);
             getObjBodyBuilder.append("   java.lang.StringBuilder where = new java.lang.StringBuilder();");
             getObjBodyBuilder.append("   boolean isNull = true;");
 
-            for (int i = 0; i < table.getFields().size(); i ++) {
-                switch (table.getFields().get(i).getType()) {
+            for (int i = 0; i < fields.size(); i ++) {
+                switch (fields.get(i).getType()) {
                     case "int" :     getObjBodyBuilder.append("   if ($").append(i + 1).append(" != null) {");
                                      getObjBodyBuilder.append("      if (!isNull) where.append(\" and \");");
-                                     getObjBodyBuilder.append("      where.append(\"").append(table.getFields().get(i).getValue()).append("=?\");");
+                                     getObjBodyBuilder.append("      where.append(\"").append(fields.get(i).getValue()).append("=?\");");
                                      getObjBodyBuilder.append("      isNull = false;}");
                                      break;
                     case "String"  : getObjBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {");
                                      getObjBodyBuilder.append("      if (!isNull) where.append(\" and \");");
-                                     getObjBodyBuilder.append("      where.append(\"").append(table.getFields().get(i).getValue()).append("=?\");");
+                                     getObjBodyBuilder.append("      where.append(\"").append(fields.get(i).getValue()).append("=?\");");
                                      getObjBodyBuilder.append("      isNull = false;}");
                                      break;
                 }
@@ -161,8 +195,8 @@ public class RestServiceCreater {
             getObjBodyBuilder.append("   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);");
             getObjBodyBuilder.append("   int i = 1;");
 
-            for (int i = 0; i < table.getFields().size(); i ++) {
-                switch (table.getFields().get(i).getType()) {
+            for (int i = 0; i < fields.size(); i ++) {
+                switch (fields.get(i).getType()) {
                     case "int" :     getObjBodyBuilder.append("   if ($").append(i + 1).append(" != null) {stmt.setInt(i, $").append(i + 1).append(".intValue());").append("   i ++;}"); break;
                     case "String"  : getObjBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {stmt.setString(i, $").append(i + 1).append(");").append("   i ++;}"); break;
                 }
@@ -173,8 +207,8 @@ public class RestServiceCreater {
             getObjBodyBuilder.append("   rs.last();");
             getObjBodyBuilder.append("   if (rs.getRow() > 0) {");
 
-            for (int i = 0; i < table.getFields().size(); i ++) {
-                var field = table.getFields().get(i);
+            for (int i = 0; i < fields.size(); i ++) {
+                var field = fields.get(i);
                 switch (field.getType()) {
                     case "int" :     getObjBodyBuilder.append("      arg.").append(field.getSetterName()).append("(Integer.valueOf(rs.getInt(\"").append(field.getValue()).append("\")));"); break;
                     case "String" :  getObjBodyBuilder.append("      arg.").append(field.getSetterName()).append("(rs.getString(\"").append(field.getValue()).append("\"));"); break;
@@ -196,8 +230,8 @@ public class RestServiceCreater {
 
             // 添加getObjs方法
             try {
-                // 添加sql属性 pageSize page order orderType
-                args.addAll(List.of(classPool.get("int"), classPool.get("int"), classPool.get("java.lang.String"), classPool.get("java.lang.String")));
+                // 添加sql属性 pageSize page order orderType count
+                args.addAll(List.of(classPool.get("int"), classPool.get("int"), classPool.get("java.lang.String"), classPool.get("java.lang.String"), classPool.get("boolean")));
             } catch (NotFoundException e) {
                 e.printStackTrace();
             }
@@ -205,34 +239,34 @@ public class RestServiceCreater {
             getObjsBodyBuilder.append("{");
             getObjsBodyBuilder.append("   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();");
             getObjsBodyBuilder.append("   java.sql.Connection conn = pool.getConn(\"").append(table.getDatasource()).append("\");");
-            var objsArgs = table.getFields().stream().map(Field::getValue).collect(Collectors.toList()).toString();
+            var objsArgs = fields.stream().map(Field::getValue).collect(Collectors.toList()).toString();
             objsArgs = objsArgs.substring(1, objsArgs.length() - 1);
             getObjsBodyBuilder.append("   java.lang.StringBuilder where = new java.lang.StringBuilder();");
             getObjsBodyBuilder.append("   boolean isNull = true;");
 
-            for (int i = 0; i < table.getFields().size(); i ++) {
-                switch (table.getFields().get(i).getType()) {
+            for (int i = 0; i < fields.size(); i ++) {
+                switch (fields.get(i).getType()) {
                     case "int" : getObjsBodyBuilder.append("   if ($").append(i + 1).append(" != null) {");
                         getObjsBodyBuilder.append("      if (!isNull) where.append(\" and \");");
-                        getObjsBodyBuilder.append("      where.append(\"").append(table.getFields().get(i).getValue()).append("=?\");");
+                        getObjsBodyBuilder.append("      where.append(\"").append(fields.get(i).getValue()).append("=?\");");
                         getObjsBodyBuilder.append("      isNull = false;}");
                         break;
                     case "String"  : getObjsBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {");
                         getObjsBodyBuilder.append("      if (!isNull) where.append(\" and \");");
-                        getObjsBodyBuilder.append("      where.append(\"").append(table.getFields().get(i).getValue()).append("=?\");");
+                        getObjsBodyBuilder.append("      where.append(\"").append(fields.get(i).getValue()).append("=?\");");
                         getObjsBodyBuilder.append("      isNull = false;}");
                         break;
                 }
             }
             getObjsBodyBuilder.append("   java.lang.String whereStr = isNull ? \"\" : \" where \" + where.toString();");
-            getObjsBodyBuilder.append("   int limitStart = $").append(table.getFields().size() + 1).append(" * ($").append(table.getFields().size() + 2).append(" - 1);");
-            getObjsBodyBuilder.append("   java.lang.String prepareSQL = \"select ").append(objsArgs).append(" from ").append(table.getValue()).append("\" + ").append("whereStr").append(" + \" order by \" + ").append("$").append(table.getFields().size() + 3).append(" + \" \" + $").append(table.getFields().size() + 4).append(" + \" limit \" + limitStart + \",\" + $").append(table.getFields().size() + 1).append(" + \";\";");
+            getObjsBodyBuilder.append("   int limitStart = $").append(fields.size() + 1).append(" * ($").append(fields.size() + 2).append(" - 1);");
+            getObjsBodyBuilder.append("   java.lang.String prepareSQL = \"select ").append(objsArgs).append(" from ").append(table.getValue()).append("\" + ").append("whereStr").append(" + \" order by \" + ").append("$").append(fields.size() + 3).append(" + \" \" + $").append(fields.size() + 4).append(" + \" limit \" + limitStart + \",\" + $").append(fields.size() + 1).append(" + \";\";");
             getObjsBodyBuilder.append("   System.out.println(prepareSQL);");
             getObjsBodyBuilder.append("   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);");
             getObjsBodyBuilder.append("   int i = 1;");
 
-            for (int i = 0; i < table.getFields().size(); i ++) {
-                switch (table.getFields().get(i).getType()) {
+            for (int i = 0; i < fields.size(); i ++) {
+                switch (fields.get(i).getType()) {
                     case "int" :     getObjsBodyBuilder.append("   if ($").append(i + 1).append(" != null) {stmt.setInt(i, $").append(i + 1).append(".intValue());").append("   i ++;}"); break;
                     case "String"  : getObjsBodyBuilder.append("   if (!$").append(i + 1).append(".equals(\"\")) {stmt.setString(i, $").append(i + 1).append(");").append("   i ++;}"); break;
                 }
@@ -242,8 +276,8 @@ public class RestServiceCreater {
             getObjsBodyBuilder.append("   while(rs.next()) {");
             getObjsBodyBuilder.append("      ").append(fullPath).append(" arg = new ").append(fullPath).append("();");
 
-            for (int i = 0; i < table.getFields().size(); i ++) {
-                var field = table.getFields().get(i);
+            for (int i = 0; i < fields.size(); i ++) {
+                var field = fields.get(i);
                 switch (field.getType()) {
                     case "int" :    getObjsBodyBuilder.append("      arg.").append(field.getSetterName()).append("(Integer.valueOf(rs.getInt(\"").append(field.getValue()).append("\")));"); break;
                     case "String" : getObjsBodyBuilder.append("      arg.").append(field.getSetterName()).append("(rs.getString(\"").append(field.getValue()).append("\"));"); break;
@@ -251,14 +285,39 @@ public class RestServiceCreater {
             }
             getObjsBodyBuilder.append("      args.add(arg);");
             getObjsBodyBuilder.append("   }");
+            getObjsBodyBuilder.append("   ").append(pageFullName).append(" page = new ").append(pageFullName).append("();");
+            getObjsBodyBuilder.append("   page.setData(args);");
+            getObjsBodyBuilder.append("   cn.anayoo.sweetpotato.model.Setting setting = new cn.anayoo.sweetpotato.model.Setting();");
+            getObjsBodyBuilder.append("   setting.setPageSize($").append(fields.size() + 1).append(");");
+            getObjsBodyBuilder.append("   setting.setPage($").append(fields.size() + 2).append(");");
+            getObjsBodyBuilder.append("   setting.setOrder($").append(fields.size() + 3).append(");");
+            getObjsBodyBuilder.append("   setting.setOrderType($").append(fields.size() + 4).append(");");
+            getObjsBodyBuilder.append("   if ($").append(fields.size() + 5).append(") {");
+            getObjsBodyBuilder.append("      prepareSQL = \"select count(1) from ").append(table.getValue()).append("\" + ").append("whereStr").append(" + \";\";");
+            getObjsBodyBuilder.append("      System.out.println(prepareSQL);");
+            getObjsBodyBuilder.append("      java.sql.PreparedStatement stmt2 = conn.prepareStatement(prepareSQL);");
+            getObjsBodyBuilder.append("      i = 1;");
+
+            for (int i = 0; i < fields.size(); i ++) {
+                switch (fields.get(i).getType()) {
+                    case "int" :     getObjsBodyBuilder.append("      if ($").append(i + 1).append(" != null) {stmt2.setInt(i, $").append(i + 1).append(".intValue());").append("   i ++;}"); break;
+                    case "String"  : getObjsBodyBuilder.append("      if (!$").append(i + 1).append(".equals(\"\")) {stmt2.setString(i, $").append(i + 1).append(");").append("   i ++;}"); break;
+                }
+            }
+            getObjsBodyBuilder.append("      java.sql.ResultSet rs2 = stmt2.executeQuery();");
+            getObjsBodyBuilder.append("      if(rs2.next()) {");
+            getObjsBodyBuilder.append("         setting.setCount(java.lang.Integer.valueOf(rs2.getInt(1)));");
+            getObjsBodyBuilder.append("      }");
+            getObjsBodyBuilder.append("   }");
             getObjsBodyBuilder.append("   conn.close();");
-            getObjsBodyBuilder.append("   return args;}");
+            getObjsBodyBuilder.append("   page.setSetting(setting);");
+            getObjsBodyBuilder.append("   return page;}");
             //System.out.println(getObjsBodyBuilder.toString().replaceAll("   ", "\n   "));
             var getObjsBody = getObjsBodyBuilder.toString();
             try {
                 var arg = new CtClass[args.size()];
                 args.toArray(arg);
-                this.createGetterMethod(classPool.get("java.util.List"), table.getGets(), arg, getterService, getObjsBody, table);
+                this.createGetterMethod(classPool.get(pageFullName), table.getGets(), arg, getterService, getObjsBody, table);
             } catch (NotFoundException e) {
                 e.printStackTrace();
             }
@@ -600,6 +659,7 @@ public class RestServiceCreater {
             m = new CtMethod(returnType, mname, parameters, declaring);
             m.setModifiers(Modifier.PUBLIC);
             // 方法内的处理逻辑
+            //System.out.println(body.replaceAll("   ", "\n   "));
             m.setBody(body);
             declaring.addMethod(m);
         } catch (CannotCompileException e) {
@@ -610,13 +670,14 @@ public class RestServiceCreater {
         // 涉及到tables， 暂时不封装到JavassistUtil了 = =
         var parameterAtrribute = new ParameterAnnotationsAttribute(getterServiceConst, ParameterAnnotationsAttribute.visibleTag);
         var paramArrays = new Annotation[parameters.length][2];
-        var sqlArrays = new String[]{"pageSize", "page", "order", "orderType"};
-        var sqlDefaultArrays = new String[]{"" + table.getPageSize(), "1", table.getOrder(), table.getOrderType()};
+        var sqlArrays = new String[]{"pageSize", "page", "order", "orderType", "count"};
+        var sqlDefaultArrays = new String[]{"" + table.getPageSize(), "1", table.getOrder(), table.getOrderType(), "false"};
+        var pageFullName = xmlLoader.getModelPackage() + "." + table.getName().substring(0, 1).toUpperCase() + table.getName().substring(1) + "Page";
         for (int i = 0; i < parameters.length; i ++) {
             // 根据 parameters 和 table.fields 的长度判断是否为SQL分页查询属性
             if (i < table.getFields().size()) {
                 var field = table.getFields().get(i);
-                if (!returnType.equals(classPool.get("java.util.List")) && field.getValue().equals(table.getKey())) {
+                if (!returnType.equals(classPool.get(pageFullName)) && field.getValue().equals(table.getKey())) {
                     // @QueryParam
                     var f1Annot1 = new Annotation("javax.ws.rs.PathParam", getterServiceConst);
                     f1Annot1.addMemberValue("value", new StringMemberValue("key", getterServiceConst));
@@ -659,7 +720,7 @@ public class RestServiceCreater {
         var jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", getterServiceConst), getterServiceConst);
         jsonArrayMemberValue.setValue(new MemberValue[]{new StringMemberValue("application/json;charset=utf-8", getterServiceConst)});
         var memberValues = new MemberValue[][] {
-                {}, {returnType.equals(classPool.get("java.util.List")) ? new StringMemberValue("/" + url, getterServiceConst) : new StringMemberValue("/" + url + "/{key:[A-Za-z0-9]+}", getterServiceConst)}, {jsonArrayMemberValue}, {jsonArrayMemberValue}
+                {}, {returnType.equals(classPool.get(pageFullName)) ? new StringMemberValue("/" + url, getterServiceConst) : new StringMemberValue("/" + url + "/{key:[A-Za-z0-9]+}", getterServiceConst)}, {jsonArrayMemberValue}, {jsonArrayMemberValue}
         };
         JavassistUtil.addAnnotation(getterServiceConst, m, annotationClasses, memberNames, memberValues);
     }

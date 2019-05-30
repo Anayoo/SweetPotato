@@ -80,6 +80,7 @@ public class JavassistUtil {
         switch (type) {
             case "int" : ctClass = classPool.get("java.lang.Integer"); break;
             case "String" : ctClass = classPool.get("java.lang.String"); break;
+            default : ctClass = classPool.get(type); break;
         }
         return ctClass;
     }
