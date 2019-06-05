@@ -145,7 +145,7 @@ public class RestServiceCreater {
         var getterServiceFile = getterService.getClassFile();
         var getterServiceConst = getterServiceFile.getConstPool();
         // 给GetterService增加注解@Path("/")
-        JavassistUtil.addAnnotation(getterServiceFile, getterServiceConst, new String[] {"javax.ws.rs.Path"}, new String[][]{{"value"}}, new MemberValue[][] {{new StringMemberValue("/", getterServiceConst)}});
+        JavassistUtil.addAnnotation(getterServiceFile, getterServiceConst, new String[] {"javax.ws.rs.Path", "org.springframework.stereotype.Component"}, new String[][]{{"value"}, {"value"}}, new MemberValue[][] {{new StringMemberValue("/", getterServiceConst)}, {new StringMemberValue("", getterServiceConst)}});
 
         // 创建obj对应的get gets方法
         xmlLoader.getTables().forEach((name, table) -> {
@@ -339,7 +339,7 @@ public class RestServiceCreater {
         var posterServiceFile = posterService.getClassFile();
         var posterServiceConst = posterServiceFile.getConstPool();
         // 给PosterService增加注解@Path("/")
-        JavassistUtil.addAnnotation(posterServiceFile, posterServiceConst, new String[] {"javax.ws.rs.Path"}, new String[][]{{"value"}}, new MemberValue[][] {{new StringMemberValue("/", posterServiceConst)}});
+        JavassistUtil.addAnnotation(posterServiceFile, posterServiceConst, new String[] {"javax.ws.rs.Path", "org.springframework.stereotype.Component"}, new String[][]{{"value"}, {"value"}}, new MemberValue[][] {{new StringMemberValue("/", posterServiceConst)}, {new StringMemberValue("", posterServiceConst)}});
 
         // 创建obj对应的post方法
         xmlLoader.getTables().forEach((name, table) -> {
@@ -425,7 +425,7 @@ public class RestServiceCreater {
         var putterServiceFile = putterService.getClassFile();
         var putterServiceConst = putterServiceFile.getConstPool();
         // 给PutterService增加注解@Path("/")
-        JavassistUtil.addAnnotation(putterServiceFile, putterServiceConst, new String[] {"javax.ws.rs.Path"}, new String[][]{{"value"}}, new MemberValue[][] {{new StringMemberValue("/", putterServiceConst)}});
+        JavassistUtil.addAnnotation(putterServiceFile, putterServiceConst, new String[] {"javax.ws.rs.Path", "org.springframework.stereotype.Component"}, new String[][]{{"value"}, {"value"}}, new MemberValue[][] {{new StringMemberValue("/", putterServiceConst)}, {new StringMemberValue("", putterServiceConst)}});
 
         // 创建obj对应的put方法
         xmlLoader.getTables().forEach((name, table) -> {
@@ -589,7 +589,7 @@ public class RestServiceCreater {
         var deleterServiceFile = deleterService.getClassFile();
         var deleterServiceConst = deleterServiceFile.getConstPool();
         // 给DeleterService增加注解@Path("/")
-        JavassistUtil.addAnnotation(deleterServiceFile, deleterServiceConst, new String[] {"javax.ws.rs.Path"}, new String[][]{{"value"}}, new MemberValue[][] {{new StringMemberValue("/", deleterServiceConst)}});
+        JavassistUtil.addAnnotation(deleterServiceFile, deleterServiceConst, new String[] {"javax.ws.rs.Path", "org.springframework.stereotype.Component"}, new String[][]{{"value"}, {"value"}}, new MemberValue[][] {{new StringMemberValue("/", deleterServiceConst)}, {new StringMemberValue("", deleterServiceConst)}});
 
         // 创建obj对应的delete方法
         xmlLoader.getTables().forEach((name, table) -> {
