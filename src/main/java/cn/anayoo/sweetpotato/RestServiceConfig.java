@@ -14,7 +14,7 @@ public class RestServiceConfig extends ResourceConfig {
 
     public RestServiceConfig() throws DocumentException {
         var xmlLoader = new XmlLoader().read("potatoes.xml");
-        packages("cn.anayoo.sweetpotato.demo.service");
+        packages(xmlLoader.getServicePackage());
         register(MultiPartFeature.class);
         register(JacksonFeature.class);
     }
