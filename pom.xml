@@ -11,7 +11,7 @@
     </parent>
     <groupId>cn.anayoo</groupId>
     <artifactId>sweetpotato</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
     <name>SweetPotato</name>
     <description>A mysql database restful API server</description>
 
@@ -30,6 +30,7 @@
         <spring-cloud.version>Greenwich.SR1</spring-cloud.version>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>
+        <dockerfile-maven-version>1.4.10</dockerfile-maven-version>
     </properties>
 
     <dependencies>
@@ -140,6 +141,28 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <plugin>
+                <groupId>com.spotify</groupId>
+                <artifactId>dockerfile-maven-plugin</artifactId>
+                <version>${dockerfile-maven-version}</version>
+                <executions>
+                    <execution>
+                        <id>default</id>
+                        <goals>
+                            <goal>build</goal>
+                            <goal>push</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <repository>${project.groupId}/${project.artifactId}</repository>
+                    <tag>${project.version}</tag>
+                    <buildArgs>
+                        <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>
+                    </buildArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>

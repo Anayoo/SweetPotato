@@ -30,9 +30,8 @@ public class XmlLoader implements Cloneable {
     private int defaultTimeout = 1000;
 
     synchronized XmlLoader read(String src) throws DocumentException {
-        var s = src.startsWith("/") ? src : Objects.requireNonNull(this.getClass().getClassLoader().getResource("")).getPath() + src;
-        logger.debug("加载配置文件: {}", s);
-        var doc = new SAXReader().read(new File(s));
+        logger.debug("加载配置文件: {}", src);
+        var doc = new SAXReader().read(this.getClass().getClassLoader().getResourceAsStream("/" + src));
         var root =  doc.getRootElement();
         // 读全局配置
         var config = root.element("config");
