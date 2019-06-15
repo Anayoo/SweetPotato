@@ -11,7 +11,7 @@ public class MainTest {
     @Test
     public void MainTest() throws DocumentException, ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
         var xmlLoader = new XmlLoader().read("potatoes.xml");
-        new RestServiceCreater(xmlLoader).createRestfulApi();
+        new RestCreater(xmlLoader).createModel().createGetter().createPoster().createPutter().createDeleter();
         DatabasePool.getInstance(xmlLoader);
 
         var clazz = this.getClass().getClassLoader().loadClass(xmlLoader.getServicePackage() + ".GetterService");

@@ -32,16 +32,15 @@ public class JavassistUtil {
     /**
      * 为目标类添加类注解
      * @param classFile             目标类
-     * @param constPool             目标类的常量池
      * @param annotationClasses     注解类名
      * @param memberNames           注解类属性的名称
      * @param memberValues          注解类属性的值
      */
-    public static void addAnnotation(ClassFile classFile, ConstPool constPool, String[] annotationClasses, String[][] memberNames, MemberValue[][] memberValues) {
-        var attr = new AnnotationsAttribute(constPool, AnnotationsAttribute.visibleTag);
+    public static void addAnnotation(ClassFile classFile, String[] annotationClasses, String[][] memberNames, MemberValue[][] memberValues) {
+        var attr = new AnnotationsAttribute(classFile.getConstPool(), AnnotationsAttribute.visibleTag);
         for (int i = 0; i < annotationClasses.length; i ++) {
             String annotationClass = annotationClasses[i];
-            var annot = new Annotation(annotationClass, constPool);
+            var annot = new Annotation(annotationClass, classFile.getConstPool());
             String[] memberName = memberNames[i];
             MemberValue[] memberValue = memberValues[i];
             for (int j = 0; j < memberName.length; j ++) {

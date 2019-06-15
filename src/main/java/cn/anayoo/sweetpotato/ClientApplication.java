@@ -20,7 +20,7 @@ public class ClientApplication {
         logger.log(Level.INFO, "服务启动，初始化服务对象...");
         try {
             var xmlLoader = new XmlLoader().read("potatoes.xml");
-            new RestServiceCreater(xmlLoader).createRestfulApi();
+            new RestCreater(xmlLoader).createModel().createGetter().createPoster().createPutter().createDeleter();
             DatabasePool.getInstance(xmlLoader);
             logger.log(Level.INFO, "初始化服务对象: ok");
         } catch (DocumentException e) {

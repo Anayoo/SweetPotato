@@ -17,7 +17,7 @@ import java.util.*;
  * Created by anayoo on 19-05-13
  * @author anayoo
  */
-public class XmlLoader implements Cloneable {
+public class XmlLoader {
     private Logger logger = LoggerFactory.getLogger(XmlLoader.class);
 
     private Hashtable<String, HikariConfig> hikariConfigs = new Hashtable<>();
@@ -85,13 +85,6 @@ public class XmlLoader implements Cloneable {
             order = order == null ? fields.get(0).getValue() : order;
             this.tables.put(name, new Table(name, datasource, value, url, gets, key, pageSize, order, orderType, fields));
         });
-
-        try {
-            return (XmlLoader) this.clone();
-        } catch (CloneNotSupportedException e) {
-            // XmlLoader必然可被复制
-            e.printStackTrace();
-        }
         return this;
     }
 
