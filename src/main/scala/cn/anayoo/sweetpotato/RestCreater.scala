@@ -30,6 +30,7 @@ class RestCreater(xml: XmlLoader) {
         obj.addMethod(CtNewMethod.getter("get" + field.getValue.substring(0, 1).toUpperCase + field.getValue.substring(1), f1))
       })
       obj.toClass(classLoader, null)
+      writeClassFile(obj, modelName + ".class")
 
       val pageFullName = modelName + "Page"
       val objPage = classPool.makeClass(pageFullName)
@@ -45,6 +46,7 @@ class RestCreater(xml: XmlLoader) {
       objPage.addMethod(CtNewMethod.setter("setSetting", f2))
       objPage.addMethod(CtNewMethod.getter("getSetting", f2))
       objPage.toClass(classLoader, null)
+      writeClassFile(objPage, pageFullName + ".class")
       logger.log(Level.FINE, "已创建实体类: {}", pageFullName)
     })
     logger.log(Level.INFO, "创建实体类: ok")
@@ -105,7 +107,7 @@ class RestCreater(xml: XmlLoader) {
            |   $wheres
            |   java.lang.String whereStr = isNull ? "" : " where " + where.toString();
            |   int limitStart = $$${fields.size + 1} * ($$${fields.size + 2} - 1);
-           |   java.lang.String prepareSQL = "select $args from ${table.getValue} " + whereStr + " order by $$${fields.size + 3} $$${fields.size + 4} limit " + limitStart + ", $$${fields.size + 1};";
+           |   java.lang.String prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " limit " + limitStart + ", " + $$${fields.size + 1} + ";";
            |   System.out.println(prepareSQL);
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   int i = 1;
@@ -114,6 +116,7 @@ class RestCreater(xml: XmlLoader) {
            |   java.util.List args = new java.util.ArrayList();
            |   while(rs.next()) {
            |      $model arg = new $model();
+           |      $rs
            |      args.add(arg);
            |   }
            |   $modelPage page = new $modelPage();
@@ -139,7 +142,7 @@ class RestCreater(xml: XmlLoader) {
            |   return page;
            |}
          """.stripMargin
-      createGetterMethod(xml, classPool.get(model), table.getGets, parameters2, getterService, body2, table)
+      createGetterMethod(xml, classPool.get(modelPage), table.getGets, parameters2, getterService, body2, table)
     })
     writeClassFile(getterService, "GetterService.class")
     this
@@ -297,18 +300,22 @@ class RestCreater(xml: XmlLoader) {
   val spellWhere2: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       s"""${b._2.getValue}=?"""
-    }).mkString(" and ")
+    }).mkString(", ")
   }
   val spellStmt: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
         case "int" =>
-          s"""if ($$${b._1 + 1} != null) stmt.setInt(i, $$${b._1 + 1}.intValue());
-             |i ++;
+          s"""if ($$${b._1 + 1} != null) {
+             |   stmt.setInt(i, $$${b._1 + 1}.intValue());
+             |   i ++;
+             |}
              """.stripMargin
         case "String" =>
-          s"""if ($$${b._1 + 1}.equals("")) stmt.setString(i, $$${b._1 + 1});
-             |i ++;
+          s"""if (!$$${b._1 + 1}.equals("")) {
+             |   stmt.setString(i, $$${b._1 + 1});
+             |   i ++;
+             |}
              """.stripMargin
       }
     }).mkString
@@ -349,7 +356,7 @@ class RestCreater(xml: XmlLoader) {
     val m = new CtMethod(returnType, mname, parameters, declaring)
     m.setModifiers(Modifier.PUBLIC)
     // 方法内的处理逻辑
-    System.out.println(body)
+    //System.out.println(body)
     m.setBody(body)
     declaring.addMethod(m)
     // 给参数增加注解 @QueryParam @DefaultValue    参考：https://www.cnblogs.com/coshaho/p/5105545.html
@@ -368,12 +375,11 @@ class RestCreater(xml: XmlLoader) {
         if (!(returnType == classPool.get(pageFullName)) && field.getValue == table.getKey) { // @QueryParam
           val f1Annot1 = new Annotation("javax.ws.rs.PathParam", getterServiceConst)
           f1Annot1.addMemberValue("value", new StringMemberValue("key", getterServiceConst))
-          paramArrays(i) = new Array[Annotation](1)
-          paramArrays(i)(0) = f1Annot1
+          paramArrays(i) = new Array[Annotation](2)
+          paramArrays(i)(1) = f1Annot1
           // @DefaultValue
           val f1Annot2 = new Annotation("javax.ws.rs.DefaultValue", getterServiceConst)
           f1Annot2.addMemberValue("value", new StringMemberValue("", getterServiceConst))
-          paramArrays(i) = new Array[Annotation](1)
           paramArrays(i)(0) = f1Annot2
         }
         else {
@@ -416,7 +422,7 @@ class RestCreater(xml: XmlLoader) {
     val m = new CtMethod(returnType, mname, parameters, declaring)
     m.setModifiers(Modifier.PUBLIC)
     // 方法内的处理逻辑
-    System.out.println(body)
+    //System.out.println(body)
     m.setBody(body)
     declaring.addMethod(m)
     // 给参数增加注解 @QueryParam @DefaultValue    参考：https://www.cnblogs.com/coshaho/p/5105545.html

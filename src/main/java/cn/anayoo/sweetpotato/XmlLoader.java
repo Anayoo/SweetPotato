@@ -8,7 +8,6 @@ import org.dom4j.io.SAXReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.util.*;
 
 /**
@@ -30,9 +29,10 @@ public class XmlLoader {
     private int defaultTimeout = 1000;
 
     synchronized XmlLoader read(String src) throws DocumentException {
-        var s = src.startsWith("/") ? src : Objects.requireNonNull(this.getClass().getClassLoader().getResource("")).getPath() + src;
-        logger.debug("加载配置文件: {}", s);
-        var doc = new SAXReader().read(new File(s));
+        logger.debug("加载配置文件: {}", src);
+        var baseUrl = this.getClass().getClassLoader().getResource("").toString();
+        var configUrl = baseUrl + src;
+        var doc = new SAXReader().read(configUrl);
         var root =  doc.getRootElement();
         // 读全局配置
         var config = root.element("config");
