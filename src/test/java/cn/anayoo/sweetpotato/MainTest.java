@@ -16,7 +16,7 @@ public class MainTest {
 
         var clazz = this.getClass().getClassLoader().loadClass(xmlLoader.getServicePackage() + ".GetterService");
         var obj = clazz.getDeclaredConstructor().newInstance();
-        var m = clazz.getMethod("getUsers", Integer.class, String.class, String.class, int.class, int.class, String.class, String.class, boolean.class);
+        var m = clazz.getMethod("getUsers", Long.class, String.class, String.class, int.class, int.class, String.class, String.class, boolean.class);
         var res = m.invoke(obj, null, "", "", 16, 1, "id", "asc", true);
         var m1 = res.getClass().getMethod("getSetting");
         var res1 = m1.invoke(res);

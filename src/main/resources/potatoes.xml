@@ -33,8 +33,8 @@
         <!-- type目前支持int和String -->
         <!-- autoInc、allowRepeat -->
         <!-- allowNone允许空值，默认为true -->
-        <field name="标识" value="id" type="int" autoInc="true" />
-        <field name="用户名" value="username" type="String" regex="^[A-Za-z0-9]{6,16}$" allowRepeat="false" allowNone="false" />
-        <field name="密码" value="password" type="String" allowNone="false" />
+        <field name="标识" value="id" type="number" autoInc="true" />
+        <field name="用户名" value="username" type="string" regex="^[A-Za-z0-9]{6,16}$" allowRepeat="false" allowNone="false" />
+        <field name="密码" value="password" type="string" allowNone="false" />
     </table>
 </root>

@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 /**
  * Created by anayoo on 19-05-13
  * @author anayoo
+ * @deprecated
+ * @see cn.anayoo.sweetpotato.RestCreater
  */
 public class RestServiceCreater {
     // 先用slf4j调试, 框架正式打包的时候改用jul

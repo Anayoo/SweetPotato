@@ -10,6 +10,10 @@ import javassist._
 import javassist.bytecode.ParameterAnnotationsAttribute
 import javassist.bytecode.annotation.{Annotation, ArrayMemberValue, MemberValue, StringMemberValue}
 
+/**
+  * @author anayoo
+  * @param xml
+  */
 class RestCreater(xml: XmlLoader) {
   private val logger = Logger.getLogger(classOf[RestCreater].getName)
   private val classPool = new ClassPool(true)
@@ -269,7 +273,7 @@ class RestCreater(xml: XmlLoader) {
         s"""if ($$$i.${b._2.getGetterName}() == null) return javax.ws.rs.core.Response.status(400).entity("\\"属性${b._2.getValue}不能为空\\"").build();
          """.stripMargin else ""
       b._2.getType match {
-        case "String" => verify +=
+        case "string" => verify +=
           s"""if ($$$i.${b._2.getGetterName}() != null && !java.util.regex.Pattern.compile("${b._2.getRegex.replaceAll("\\\\", "\\\\\\\\")}").matcher($$$i.${b._2.getGetterName}()).find()) return javax.ws.rs.core.Response.status(400).entity("\\"参数${b._2.getValue}校验错误\\"").build();
            """.stripMargin
       }
@@ -280,14 +284,14 @@ class RestCreater(xml: XmlLoader) {
   val spellWhere: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
-        case "int" =>
+        case "number" =>
           s"""if ($$${b._1 + 1} != null) {
              |   if (!isNull) where.append(" and ");
              |   where.append("${b._2.getValue}=?");
              |   isNull = false;
              |}
             """.stripMargin
-        case "String" =>
+        case "string" =>
           s"""if (!$$${b._1 + 1}.equals("")) {
              |   if (!isNull) where.append(" and ");
              |   where.append("${b._2.getValue}=?");
@@ -305,13 +309,13 @@ class RestCreater(xml: XmlLoader) {
   val spellStmt: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
-        case "int" =>
+        case "number" =>
           s"""if ($$${b._1 + 1} != null) {
-             |   stmt.setInt(i, $$${b._1 + 1}.intValue());
+             |   stmt.setLong(i, $$${b._1 + 1}.longValue());
              |   i ++;
              |}
              """.stripMargin
-        case "String" =>
+        case "string" =>
           s"""if (!$$${b._1 + 1}.equals("")) {
              |   stmt.setString(i, $$${b._1 + 1});
              |   i ++;
@@ -323,10 +327,10 @@ class RestCreater(xml: XmlLoader) {
   val spellStmt2: (Seq[(Int, Field)], Int) => String = (a:Seq[(Int, Field)], i: Int) => {
     a.map(b => {
       b._2.getType match {
-        case "int" =>
-          s"""stmt.setInt(${b._1}, $$$i.${b._2.getGetterName}().intValue());
+        case "number" =>
+          s"""stmt.setLong(${b._1}, $$$i.${b._2.getGetterName}().longValue());
            """.stripMargin
-        case "String" =>
+        case "string" =>
           s"""stmt.setString(${b._1}, $$$i.${b._2.getGetterName}());
            """.stripMargin
       }
@@ -335,16 +339,16 @@ class RestCreater(xml: XmlLoader) {
   val spellStmt3: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
-        case "int" => s"""stmt.setInt(${b._1 + 1}, $$1.intValue());""".stripMargin
-        case "String" => s"""stmt.setString(${b._1 + 1}, $$1);""".stripMargin
+        case "number" => s"""stmt.setLong(${b._1 + 1}, $$1.longValue());""".stripMargin
+        case "string" => s"""stmt.setString(${b._1 + 1}, $$1);""".stripMargin
       }
     }).mkString
   }
   val spellRs: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
-        case "int" => s"""arg.${b._2.getSetterName}(Integer.valueOf(rs.getInt("${b._2.getValue}")));"""
-        case "String" => s"""arg.${b._2.getSetterName}(rs.getString("${b._2.getValue}"));"""
+        case "number" => s"""arg.${b._2.getSetterName}(Long.valueOf(rs.getLong("${b._2.getValue}")));"""
+        case "string" => s"""arg.${b._2.getSetterName}(rs.getString("${b._2.getValue}"));"""
       }
     }).mkString
   }
