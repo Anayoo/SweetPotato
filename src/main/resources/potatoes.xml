@@ -12,16 +12,16 @@
 
     <!-- 目前仅支持mysql数据库 -->
     <datasource name="default">
-        <url>jdbc:mysql://127.0.0.1:3306/test?useUnicode=yes&amp;characterEncoding=UTF-8</url>
+        <url>jdbc:mysql://mariadb:3306/test?useUnicode=yes&amp;characterEncoding=UTF-8</url>
         <username>root</username>
         <password>123456</password>
         <connectionTimeout>3000</connectionTimeout>
     </datasource>
-<!--    <datasource name="test">-->
-<!--        <url>jdbc:mysql://localhost:3306/test</url>-->
-<!--        <username>root</username>-->
-<!--        <password>root</password>-->
-<!--    </datasource>-->
+    <!--<datasource name="test">-->
+        <!--<url>jdbc:mysql://localhost:3306/test</url>-->
+        <!--<username>root</username>-->
+        <!--<password>root</password>-->
+    <!--</datasource>-->
 
     <!-- name: 影响model类的名称，datasource：使用的数据源，value：数据库表名 -->
     <!-- key和order若不配置，默认为第一个field的value -->
@@ -29,12 +29,17 @@
     <!-- pageSize若不配置，默认为config中配置的pageSize -->
     <!-- orderType若不配置，默认为asc -->
     <table name="user" datasource="default" value="test_user" url="user" gets="users" pageSize="16" orderType="asc" key="id" order="id">
-        <!-- name：无实际意义，value：数据库字段名，regex：字段合法性校验的正则表达式(type为String时有效) -->
-        <!-- type目前支持int和String -->
-        <!-- autoInc、allowRepeat -->
+        <!-- name：无实际意义，value：数据库字段名，regex：字段合法性校验的正则表达式(type为string时有效) -->
+        <!-- type目前支持number和string -->
+        <!-- autoInc、allowRepeat目前无实际意义 -->
         <!-- allowNone允许空值，默认为true -->
         <field name="标识" value="id" type="number" autoInc="true" />
-        <field name="用户名" value="username" type="string" regex="^[A-Za-z0-9]{6,16}$" allowRepeat="false" allowNone="false" />
+        <field name="用户名" value="username" type="string" regex="^[A-Za-z0-9]{6,16}$" allowNone="false" />
         <field name="密码" value="password" type="string" allowNone="false" />
     </table>
+    <!--<table name="user2" datasource="default" value="test_user" url="user2" gets="users2">-->
+        <!--<field name="标识" value="id" type="number" autoInc="true" />-->
+        <!--<field name="用户名" value="username" type="string" regex="^[A-Za-z0-9]{6,16}$" allowNone="false" />-->
+        <!--<field name="密码" value="password" type="string" allowNone="false" />-->
+    <!--</table>-->
 </root>
