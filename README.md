@@ -16,13 +16,15 @@
     # 以下信息按项目实际情况填写
     eureka:
       client:
+        register-with-eureka: false
+        fetch-registry: false
         serviceUrl:
-          defaultZone: http://{serverIp}:{serverPort}/eureka/
+          defaultZone: http://eureka:8060/eureka/
     server:
-      port: {servicePort}
+      port: 8080
     spring:
       application:
-        name: {clientName}
+        name: sweetpotato
     ```
     DEMO: potatoes.xml
     ```code
