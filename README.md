@@ -27,6 +27,8 @@
         name: sweetpotato
     ```
     DEMO: potatoes.xml
+    
+    see: [config/potatoes.xml](https://github.com/Anayoo/SweetPotato/blob/master/config/potatoes.xml)
     ```code
     <?xml version="1.0" encoding="UTF-8"?>
     <root>
