@@ -44,7 +44,7 @@
     ```
 3. 启动sweetpotato
     ```bash
-    docker run -d --name potato --network demo -p 8080:8080 anayoo/sweetpotato
+    docker run -d --name potato --network demo -v config:/usr/local/SweetPotato/config -p 8080:8080 anayoo/sweetpotato
     ```
 
 ## DEMO
