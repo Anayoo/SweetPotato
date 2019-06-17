@@ -273,6 +273,7 @@ class RestCreater(xml: XmlLoader) {
         s"""if ($$$i.${b._2.getGetterName}() == null) return javax.ws.rs.core.Response.status(400).entity("\\"属性${b._2.getValue}不能为空\\"").build();
          """.stripMargin else ""
       b._2.getType match {
+        case "number" => verify += ""
         case "string" => verify +=
           s"""if ($$$i.${b._2.getGetterName}() != null && !java.util.regex.Pattern.compile("${b._2.getRegex.replaceAll("\\\\", "\\\\\\\\")}").matcher($$$i.${b._2.getGetterName}()).find()) return javax.ws.rs.core.Response.status(400).entity("\\"参数${b._2.getValue}校验错误\\"").build();
            """.stripMargin
