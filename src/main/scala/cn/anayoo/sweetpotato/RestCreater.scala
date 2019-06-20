@@ -84,7 +84,6 @@ class RestCreater(xml: XmlLoader) {
            |   $wheres
            |   if (isNull) return null;
            |   java.lang.String prepareSQL = "select $args from ${table.getValue} where " + where + ";";
-           |   System.out.println(prepareSQL);
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   int i = 1;
            |   $stmts
@@ -112,7 +111,6 @@ class RestCreater(xml: XmlLoader) {
            |   java.lang.String whereStr = isNull ? "" : " where " + where.toString();
            |   int limitStart = $$${fields.size + 1} * ($$${fields.size + 2} - 1);
            |   java.lang.String prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " limit " + limitStart + ", " + $$${fields.size + 1} + ";";
-           |   System.out.println(prepareSQL);
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   int i = 1;
            |   $stmts
@@ -132,7 +130,6 @@ class RestCreater(xml: XmlLoader) {
            |   setting.setOrderType($$${fields.size + 4});
            |   if ($$${fields.size + 5}) {
            |      prepareSQL = "select count(1) from ${table.getValue} " + whereStr + ";";
-           |      System.out.println(prepareSQL);
            |      stmt = conn.prepareStatement(prepareSQL);
            |      i = 1;
            |      $stmts
@@ -172,7 +169,6 @@ class RestCreater(xml: XmlLoader) {
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
            |   java.lang.String prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
-           |   System.out.println(prepareSQL);
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   $stmt
            |   java.lang.String number = "" + stmt.executeUpdate();
@@ -212,14 +208,12 @@ class RestCreater(xml: XmlLoader) {
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
            |   java.lang.String prepareSQL = "select 1 from ${table.getValue} where $whereWithKey;";
-           |   System.out.println(prepareSQL);
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   $stmtWithKey
            |   java.sql.ResultSet rs = stmt.executeQuery();
            |   rs.last();
            |   int number = rs.getRow();
            |   if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where $whereWithKey;"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
-           |   System.out.println(prepareSQL);
            |   stmt = conn.prepareStatement(prepareSQL);
            |   $stmt
            |   java.lang.String number = "" + stmt.executeUpdate();
@@ -252,7 +246,6 @@ class RestCreater(xml: XmlLoader) {
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
            |   java.lang.String prepareSQL = "delete from ${table.getValue} where $whereWithKey;";
-           |   System.out.println(prepareSQL);
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   $stmtWithKey
            |   java.lang.String number = "" + stmt.executeUpdate();
@@ -329,10 +322,10 @@ class RestCreater(xml: XmlLoader) {
     a.map(b => {
       b._2.getType match {
         case "number" =>
-          s"""stmt.setLong(${b._1}, $$$i.${b._2.getGetterName}().longValue());
+          s"""if ($$$i.${b._2.getGetterName}() == null) stmt.setNull(${b._1}, java.sql.Types.INTEGER); else stmt.setLong(${b._1}, $$$i.${b._2.getGetterName}().longValue());
            """.stripMargin
         case "string" =>
-          s"""stmt.setString(${b._1}, $$$i.${b._2.getGetterName}());
+          s"""if ($$$i.${b._2.getGetterName}() == null) stmt.setNull(${b._1}, java.sql.Types.VARCHAR); else stmt.setString(${b._1}, $$$i.${b._2.getGetterName}());
            """.stripMargin
       }
     }).mkString
@@ -340,8 +333,8 @@ class RestCreater(xml: XmlLoader) {
   val spellStmt3: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
-        case "number" => s"""stmt.setLong(${b._1 + 1}, $$1.longValue());""".stripMargin
-        case "string" => s"""stmt.setString(${b._1 + 1}, $$1);""".stripMargin
+        case "number" => s"""if ($$1 == null) stmt.setNull(${b._1 + 1}, java.sql.Types.INTEGER); else stmt.setLong(${b._1 + 1}, $$1.longValue());""".stripMargin
+        case "string" => s"""if ($$1 == null) stmt.setNull(${b._1 + 1}, java.sql.Types.VARCHAR); else stmt.setString(${b._1 + 1}, $$1);""".stripMargin
       }
     }).mkString
   }
