@@ -158,10 +158,11 @@ class RestCreater(xml: XmlLoader) {
       Array[Array[MemberValue]](Array(new StringMemberValue("/", posterService.getClassFile.getConstPool)), Array(new StringMemberValue("", posterService.getClassFile.getConstPool))))
     xml.getTables.values().stream().forEach(table => {
       val model = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase() + table.getName.substring(1)
-      val fields = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filterNot(_._2.getValue.equals(table.getKey))
+      val fields = for (i <- 0 until table.getFields.size()) yield i + 1 -> table.getFields.get(i)
+      val fieldsWithoutKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filterNot(_._2.getValue.equals(table.getKey))
       val args = fields.map(_._2.getValue).mkString(", ")
       val values = fields.map(_ => "?").mkString(", ")
-      val verify = spellVerify(fields, 1)
+      val verify = spellVerify(fieldsWithoutKey, 1)
       val stmt = spellStmt2(fields, 1)
       val body =
         s"""{
