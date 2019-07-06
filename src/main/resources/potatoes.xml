@@ -12,7 +12,7 @@
 
     <!-- 目前仅支持mysql数据库 -->
     <datasource name="default">
-        <url>jdbc:mysql://mariadb:3306/test?useUnicode=yes&amp;characterEncoding=UTF-8</url>
+        <url>jdbc:mysql://localhost:3306/test?useUnicode=yes&amp;characterEncoding=UTF-8</url>
         <username>root</username>
         <password>123456</password>
         <connectionTimeout>3000</connectionTimeout>

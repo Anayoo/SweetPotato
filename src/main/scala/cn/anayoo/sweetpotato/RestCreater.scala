@@ -263,7 +263,7 @@ class RestCreater(xml: XmlLoader) {
 
   val spellVerify: (Seq[(Int, Field)], Int) => String = (a:Seq[(Int, Field)], i: Int) => {
     a.map(b => {
-      var verify = if (b._2.isAllowNone)
+      var verify = if (!b._2.isAllowNone)
         s"""if ($$$i.${b._2.getGetterName}() == null) return javax.ws.rs.core.Response.status(400).entity("\\"属性${b._2.getValue}不能为空\\"").build();
          """.stripMargin else ""
       b._2.getType match {
@@ -410,7 +410,7 @@ class RestCreater(xml: XmlLoader) {
     val jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", getterServiceConst), getterServiceConst)
     jsonArrayMemberValue.setValue(Array[MemberValue](new StringMemberValue("application/json;charset=utf-8", getterServiceConst)))
     val memberValues = Array[Array[MemberValue]](Array(), Array(if (returnType == classPool.get(pageFullName)) new StringMemberValue("/" + url, getterServiceConst)
-    else new StringMemberValue("/" + url + "/{key:[A-Za-z0-9]+}", getterServiceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
+    else new StringMemberValue("/" + url + "/{key}", getterServiceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
     JavassistUtil.addAnnotation(getterServiceConst, m, annotationClasses, memberNames, memberValues)
   }
 
@@ -456,7 +456,7 @@ class RestCreater(xml: XmlLoader) {
     val jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", serviceConst), serviceConst)
     jsonArrayMemberValue.setValue(Array[MemberValue](new StringMemberValue("application/json;charset=utf-8", serviceConst)))
     val memberValues = Array[Array[MemberValue]](Array(), Array(if (method == "POST") new StringMemberValue("/" + url, serviceConst)
-    else new StringMemberValue("/" + url + "/{key:[A-Za-z0-9]+}", serviceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
+    else new StringMemberValue("/" + url + "/{key}", serviceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
     JavassistUtil.addAnnotation(serviceConst, m, annotationClasses, memberNames, memberValues)
   }
 
