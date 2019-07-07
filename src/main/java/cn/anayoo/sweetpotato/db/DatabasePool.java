@@ -44,14 +44,33 @@ public class DatabasePool {
 
     /**
      * 获取数据库连接
-     * @param name  数据源名称
+     * @param datasource  数据源名称
      * @return      Connection
-     * @throws SQLException
      */
-    public Connection getConn(String name) throws SQLException {
-        if (dataSourceHashtable.keySet().contains(name))
-            return dataSourceHashtable.get(name).getConnection();
+    public Connection getConn(String datasource) throws SQLException {
+        if (dataSourceHashtable.keySet().contains(datasource))
+            return dataSourceHashtable.get(datasource).getConnection();
         else
-            throw new SQLException("没找到数据源:" + name);
+            throw new SQLException("没找到数据源:" + datasource);
+    }
+
+    /**
+     * 获取数据库类型
+     * @param datasource  数据源名称
+     * @return      Type
+     */
+    public String getDatasourceType(String datasource) throws SQLException {
+        if (dataSourceHashtable.keySet().contains(datasource)) {
+            var driverClassName = dataSourceHashtable.get(datasource).getDriverClassName();
+            switch (driverClassName) {
+                case "oracle.jdbc.driver.OracleDriver" : return "oracle";
+                case "com.mysql.jdbc.Driver" : return "mysql";
+                case "com.microsoft.jdbc.sqlserver.SQLServerDriver" : return "sqlserver";
+                case "com.ibm.db2.jdbc.app.DB2Driver" : return "db2";
+                default: throw new SQLException("未识别的数据库:" + driverClassName);
+            }
+
+        } else
+            throw new SQLException("没找到数据源:" + datasource);
     }
 }
