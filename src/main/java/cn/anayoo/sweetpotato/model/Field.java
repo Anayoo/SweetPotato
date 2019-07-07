@@ -97,6 +97,7 @@ public class Field implements Comparable<Field> {
                 "\"value\":\"" + this.value + "\", " +
                 "\"type\":\"" + this.type + "\", " +
                 "\"regex\":\"" + this.regex + "\", " +
+                "\"isPrimaryKey\":" + this.isPrimaryKey + ", " +
                 "\"allowRepeat\":" + this.allowRepeat + ", " +
                 "\"allowNone\":" + this.allowNone +
                 "}";
