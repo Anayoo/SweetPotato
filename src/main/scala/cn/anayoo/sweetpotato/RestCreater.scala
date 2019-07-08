@@ -79,17 +79,20 @@ class RestCreater(xml: XmlLoader) {
         s"""{
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
+           |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
            |   java.lang.StringBuilder where = new java.lang.StringBuilder();
            |   boolean isNull = true;
            |   $wheres
            |   if (isNull) return null;
-           |   java.lang.String prepareSQL = "select $args from ${table.getValue} where " + where + ";";
+           |   java.lang.String prepareSQL = "";
+           |   if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue} where " + where + ";";
+           |   if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue} where " + where;
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   int i = 1;
            |   $stmts
            |   java.sql.ResultSet rs = stmt.executeQuery();
            |   $model arg = new $model();
-           |   rs.last();
+           |   rs.next();
            |   if (rs.getRow() > 0) {
            |      $rs
            |   } else arg = null;
@@ -105,12 +108,15 @@ class RestCreater(xml: XmlLoader) {
         s"""{
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
+           |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
            |   java.lang.StringBuilder where = new java.lang.StringBuilder();
            |   boolean isNull = true;
            |   $wheres
            |   java.lang.String whereStr = isNull ? "" : " where " + where.toString();
            |   int limitStart = $$${fields.size + 1} * ($$${fields.size + 2} - 1);
-           |   java.lang.String prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " limit " + limitStart + ", " + $$${fields.size + 1} + ";";
+           |   java.lang.String prepareSQL = "";
+           |   if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " limit " + limitStart + ", " + $$${fields.size + 1} + ";";
+           |   if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " offset " + limitStart + " rows fetch next " + $$${fields.size + 1} + " rows only";
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   int i = 1;
            |   $stmts
@@ -129,7 +135,8 @@ class RestCreater(xml: XmlLoader) {
            |   setting.setOrder($$${fields.size + 3});
            |   setting.setOrderType($$${fields.size + 4});
            |   if ($$${fields.size + 5}) {
-           |      prepareSQL = "select count(1) from ${table.getValue} " + whereStr + ";";
+           |      if (dbType.equals("mysql")) prepareSQL = "select count(1) from ${table.getValue} " + whereStr + ";";
+           |      if (dbType.equals("oracle")) prepareSQL = "select count(1) from ${table.getValue} " + whereStr;
            |      stmt = conn.prepareStatement(prepareSQL);
            |      i = 1;
            |      $stmts
@@ -158,18 +165,20 @@ class RestCreater(xml: XmlLoader) {
       Array[Array[MemberValue]](Array(new StringMemberValue("/", posterService.getClassFile.getConstPool)), Array(new StringMemberValue("", posterService.getClassFile.getConstPool))))
     xml.getTables.values().stream().forEach(table => {
       val model = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase() + table.getName.substring(1)
-      val fields = for (i <- 0 until table.getFields.size()) yield i + 1 -> table.getFields.get(i)
       val fieldsWithoutKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filterNot(_._2.getValue.equals(table.getKey))
-      val args = fields.map(_._2.getValue).mkString(", ")
-      val values = fields.map(_ => "?").mkString(", ")
+      val args = fieldsWithoutKey.map(_._2.getValue).mkString(", ")
+      val values = fieldsWithoutKey.map(_ => "?").mkString(", ")
       val verify = spellVerify(fieldsWithoutKey, 1)
-      val stmt = spellStmt2(fields, 1)
+      val stmt = spellStmt2(fieldsWithoutKey, 1)
       val body =
         s"""{
            |   $verify
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
-           |   java.lang.String prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
+           |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
+           |   java.lang.String prepareSQL = "";
+           |   if (dbType.equals("mysql")) prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
+           |   if (dbType.equals("oracle")) prepareSQL = "insert into ${table.getValue} ($args) values ($values)";
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   $stmt
            |   java.lang.String number = "" + stmt.executeUpdate();
@@ -208,13 +217,17 @@ class RestCreater(xml: XmlLoader) {
            |   $verify
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
-           |   java.lang.String prepareSQL = "select 1 from ${table.getValue} where $whereWithKey;";
+           |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
+           |   java.lang.String prepareSQL = "";
+           |   if (dbType.equals("mysql")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey;";
+           |   if (dbType.equals("oracle")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey";
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   $stmtWithKey
            |   java.sql.ResultSet rs = stmt.executeQuery();
-           |   rs.last();
+           |   rs.next();
            |   int number = rs.getRow();
-           |   if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where $whereWithKey;"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
+           |   if (dbType.equals("mysql")) if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where $whereWithKey;"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
+           |   if (dbType.equals("oracle")) if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where $whereWithKey"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values)";
            |   stmt = conn.prepareStatement(prepareSQL);
            |   $stmt
            |   java.lang.String number = "" + stmt.executeUpdate();
@@ -246,7 +259,10 @@ class RestCreater(xml: XmlLoader) {
            |   if ($$1 == null) return javax.ws.rs.core.Response.status(400).entity("\\"未指明主键\\"").build();
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
-           |   java.lang.String prepareSQL = "delete from ${table.getValue} where $whereWithKey;";
+           |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
+           |   java.lang.String prepareSQL = "";
+           |   if (dbType.equals("mysql")) prepareSQL = "delete from ${table.getValue} where $whereWithKey;";
+           |   if (dbType.equals("oracle")) prepareSQL = "delete from ${table.getValue} where $whereWithKey";
            |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |   $stmtWithKey
            |   java.lang.String number = "" + stmt.executeUpdate();

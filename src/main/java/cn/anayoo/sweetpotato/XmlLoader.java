@@ -9,6 +9,7 @@ import org.dom4j.io.SAXReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
 
@@ -50,8 +51,8 @@ public class XmlLoader {
             hikariConfig.setUsername(datasource.elementText("username"));
             hikariConfig.setPassword(datasource.elementText("password"));
             hikariConfig.setConnectionTimeout(datasource.elementText("connectionTimeout") == null && !this.canParseInt(datasource.elementText("connectionTimeout")) ? this.defaultTimeout : Integer.parseInt(datasource.elementText("connectionTimeout")));
-            // 写死了，目前仅支持mysql。
-            hikariConfig.setDriverClassName("com.mysql.jdbc.Driver");
+            if (hikariConfig.getJdbcUrl().startsWith("jdbc:mysql")) hikariConfig.setDriverClassName("com.mysql.jdbc.Driver");
+            if (hikariConfig.getJdbcUrl().startsWith("jdbc:oracle:thin")) hikariConfig.setDriverClassName("oracle.jdbc.driver.OracleDriver");
             hikariConfigs.put(datasource.attributeValue("name"), hikariConfig);
         });
 
@@ -91,6 +92,7 @@ public class XmlLoader {
             if (autoBuild) {
                 fields.addAll(dbFields.values());
                 Collections.sort(fields);
+                System.out.println(fields);
                 // 如果order和key不主动定义，取第一个field
                 key = key.equals("") ? fields.get(0).getValue() : key;
                 order = order.equals("") ? fields.get(0).getValue() : order;
@@ -122,22 +124,40 @@ public class XmlLoader {
         try {
             var conn = pool.getConn(datasource);
             var type = pool.getDatasourceType(datasource);
+            var stmt = conn.createStatement();
+            var sql = "";
+            var rs = (ResultSet) null;
             switch (type) {
                 case "mysql" :
-                    var stmt = conn.createStatement();
-                    var sql = "desc " + table + ";";
-                    var rs = stmt.executeQuery(sql);
+                    sql = "desc " + table + ";";
+                    rs = stmt.executeQuery(sql);
                     while (rs.next()) {
                         var v = rs.getString("Field");
                         var t = rs.getString("Type");
                         var allowNone = rs.getString("Null").equals("YES");
                         var pk = rs.getString("Key").equals("PRI");
-                        if (t.startsWith("int") || t.startsWith("bigint") || t.startsWith("decimal") || t.startsWith("double") || t.startsWith("integer") || t.startsWith("mediumint") || t.startsWith("multipoint") || t.startsWith("smallint") || t.startsWith("tinyint"))
-                            t = "number";
-                        else t = "string";
+                        t = (t.equals("int") || t.equals("bigint") || t.equals("decimal") || t.equals("double") || t.equals("integer") || t.equals("mediumint") || t.equals("multipoint") || t.equals("smallint") || t.equals("tinyint")) ? "number" : "string";
                         fields.put(v, new Field(v, t, "", pk, true, allowNone));
                     }
+                    break;
+                case "oracle" :
+                    sql = "select * from user_tab_columns where table_name = '" + table.toUpperCase() + "' order by 'COLUMN_ID'";
+                    rs = stmt.executeQuery(sql);
+                    while (rs.next()) {
+                        var v = rs.getString("COLUMN_NAME").toLowerCase();
+                        var t = rs.getString("DATA_TYPE");
+                        var allowNone = rs.getString("NULLABLE").equals("Y");
+                        var sql1 = "select * from user_constraints a join user_cons_columns b on a.constraint_name = b.constraint_name where a.table_name='" +  table.toUpperCase() + "' and b.column_name = '" + v.toUpperCase() + "' and a.constraint_type = 'P'";
+                        var stmt1 = conn.createStatement();
+                        var rs1 = stmt1.executeQuery(sql1);
+                        var pk = rs1.next();
+                        rs1.close();
+                        t = (t.equals("NUMBER") || t.equals("INTEGER") || t.equals("INT")) ? "number" : "string";
+                        fields.put(v, new Field(v, t, "", pk, true, allowNone));
+                    }
+                    break;
             }
+            rs.close();
             conn.close();
             return fields;
         } catch (SQLException e) {
