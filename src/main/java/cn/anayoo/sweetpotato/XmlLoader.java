@@ -130,19 +130,20 @@ public class XmlLoader {
                     while (rs.next()) {
                         var v = rs.getString("Field");
                         var t = rs.getString("Type");
-                        var allowNone = rs.getString("Null").equals("NO");
+                        var allowNone = rs.getString("Null").equals("YES");
                         var pk = rs.getString("Key").equals("PRI");
-                        if (t.startsWith("int") || t.startsWith("bigint") || t.startsWith("decimal") || t.startsWith("double") || t.startsWith("integer") || t.startsWith("mediumint") || t. startsWith("multipoint") || t.startsWith("smallint") || t.startsWith("tinyint")) t = "number";
+                        if (t.startsWith("int") || t.startsWith("bigint") || t.startsWith("decimal") || t.startsWith("double") || t.startsWith("integer") || t.startsWith("mediumint") || t.startsWith("multipoint") || t.startsWith("smallint") || t.startsWith("tinyint"))
+                            t = "number";
                         else t = "string";
                         fields.put(v, new Field(v, t, "", pk, true, allowNone));
                     }
-                    return fields;
             }
+            conn.close();
+            return fields;
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
         }
-        return null;
     }
 
     public Hashtable<String, HikariConfig> getHikariConfigs() {
