@@ -5,7 +5,7 @@ WORKDIR /usr/local/SweetPotato
 ARG JAR_FILE
 COPY target/${JAR_FILE} app.jar
 COPY config config
-RUN unzip app.jar > /dev/null; rm BOOT-INF/classes/application.yml; rm BOOT-INF/classes/potatoes.xml
+RUN unzip app.jar > /dev/null; rm app.jar BOOT-INF/classes/application.yml BOOT-INF/classes/potatoes.xml BOOT-INF/lib/ojdbc8-12.2.0.1.jar BOOT-INF/lib/ucp-12.2.0.1.jar
 COPY start.sh start.sh
 
 EXPOSE 8080

@@ -65,7 +65,7 @@ class RestCreater(xml: XmlLoader) {
     JavassistUtil.addAnnotation(getterService.getClassFile,
       Array[String]("javax.ws.rs.Path", "org.springframework.stereotype.Component"),
       Array[Array[String]](Array("value"), Array("value")),
-      Array[Array[MemberValue]](Array(new StringMemberValue("/", getterService.getClassFile.getConstPool)), Array(new StringMemberValue("", getterService.getClassFile.getConstPool))))
+      Array[Array[MemberValue]](Array(new StringMemberValue("/basic", getterService.getClassFile.getConstPool)), Array(new StringMemberValue("", getterService.getClassFile.getConstPool))))
     xml.getTables.values().stream().forEach(table => {
       val model = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase() + table.getName.substring(1)
       val modelPage = model + "Page"
@@ -162,7 +162,7 @@ class RestCreater(xml: XmlLoader) {
     JavassistUtil.addAnnotation(posterService.getClassFile,
       Array[String]("javax.ws.rs.Path", "org.springframework.stereotype.Component"),
       Array[Array[String]](Array("value"), Array("value")),
-      Array[Array[MemberValue]](Array(new StringMemberValue("/", posterService.getClassFile.getConstPool)), Array(new StringMemberValue("", posterService.getClassFile.getConstPool))))
+      Array[Array[MemberValue]](Array(new StringMemberValue("/basic", posterService.getClassFile.getConstPool)), Array(new StringMemberValue("", posterService.getClassFile.getConstPool))))
     xml.getTables.values().stream().forEach(table => {
       val model = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase() + table.getName.substring(1)
       val fieldsWithoutKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filterNot(_._2.getValue.equals(table.getKey))
@@ -198,7 +198,7 @@ class RestCreater(xml: XmlLoader) {
     JavassistUtil.addAnnotation(putterService.getClassFile,
       Array[String]("javax.ws.rs.Path", "org.springframework.stereotype.Component"),
       Array[Array[String]](Array("value"), Array("value")),
-      Array[Array[MemberValue]](Array(new StringMemberValue("/", putterService.getClassFile.getConstPool)), Array(new StringMemberValue("", putterService.getClassFile.getConstPool))))
+      Array[Array[MemberValue]](Array(new StringMemberValue("/basic", putterService.getClassFile.getConstPool)), Array(new StringMemberValue("", putterService.getClassFile.getConstPool))))
     xml.getTables.values().stream().forEach(table => {
       val model = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase() + table.getName.substring(1)
       val fieldsWithoutKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filterNot(_._2.getValue.equals(table.getKey))
@@ -248,7 +248,7 @@ class RestCreater(xml: XmlLoader) {
     JavassistUtil.addAnnotation(deleterService.getClassFile,
       Array[String]("javax.ws.rs.Path", "org.springframework.stereotype.Component"),
       Array[Array[String]](Array("value"), Array("value")),
-      Array[Array[MemberValue]](Array(new StringMemberValue("/", deleterService.getClassFile.getConstPool)), Array(new StringMemberValue("", deleterService.getClassFile.getConstPool))))
+      Array[Array[MemberValue]](Array(new StringMemberValue("/basic", deleterService.getClassFile.getConstPool)), Array(new StringMemberValue("", deleterService.getClassFile.getConstPool))))
     xml.getTables.values().stream().forEach(table => {
       val model = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase() + table.getName.substring(1)
       val fieldsWithKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filter(_._2.getValue.equals(table.getKey))
