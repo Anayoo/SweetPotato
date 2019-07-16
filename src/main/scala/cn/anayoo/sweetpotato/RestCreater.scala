@@ -186,7 +186,7 @@ class RestCreater(xml: XmlLoader) {
            |   return javax.ws.rs.core.Response.status(200).entity(number).build();
            |}
          """.stripMargin
-      createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl, Array[CtClass](classPool.get(model)), posterService, body, "POST")
+      createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl, Array[CtClass](classPool.get(model)), posterService, body, "POST", table)
     })
     writeClassFile(posterService, "PosterService.class")
     this
@@ -204,39 +204,57 @@ class RestCreater(xml: XmlLoader) {
       val fieldsWithoutKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filterNot(_._2.getValue.equals(table.getKey))
       val fieldsWithKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filter(_._2.getValue.equals(table.getKey))
       val fields = fieldsWithoutKey :+ (fieldsWithoutKey.size, fieldsWithKey.apply(0)._2)
+      val fields2 = for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)
       val args = fields.map(_._2.getValue).mkString(", ")
       val values = fields.map(_ => "?").mkString(", ")
-      val verify = spellVerify(fieldsWithoutKey, 2)
+      val verify = spellVerify(fieldsWithoutKey, table.getFields.size() + 1)
+      val wheres = spellWhere(fields2)
       val whereWithKey = spellWhere2(fieldsWithKey)
       val whereWithoutKey = spellWhere2(fieldsWithoutKey)
       val stmtWithKey = spellStmt3(fieldsWithKey)
-      val stmt = spellStmt2(fieldsWithoutKey, 2) + spellStmt3(Seq.empty :+ (fieldsWithoutKey.size, fieldsWithKey.apply(0)._2))
+      val stmt = spellStmt2(fieldsWithoutKey, table.getFields.size() + 1) + spellStmt3(Seq.empty :+ (fieldsWithoutKey.size, fieldsWithKey.apply(0)._2))
+      val stmt2 = spellStmt(fieldsWithoutKey)
       val body =
         s"""{
            |   if ($$1 == null) return javax.ws.rs.core.Response.status(400).entity("\\"未指明主键\\"").build();
            |   $verify
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
-           |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
-           |   java.lang.String prepareSQL = "";
-           |   if (dbType.equals("mysql")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey;";
-           |   if (dbType.equals("oracle")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey";
-           |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
-           |   $stmtWithKey
-           |   java.sql.ResultSet rs = stmt.executeQuery();
-           |   rs.next();
-           |   int number = rs.getRow();
-           |   if (dbType.equals("mysql")) if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where $whereWithKey;"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
-           |   if (dbType.equals("oracle")) if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where $whereWithKey"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values)";
-           |   stmt = conn.prepareStatement(prepareSQL);
-           |   $stmt
-           |   java.lang.String number = "" + stmt.executeUpdate();
+           |   int number = 0;
+           |   try {
+           |      conn.setAutoCommit(false);
+           |      java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
+           |      java.lang.String prepareSQL = "";
+           |      if (dbType.equals("mysql")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey;";
+           |      if (dbType.equals("oracle")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey";
+           |      java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
+           |      $stmtWithKey
+           |      java.sql.ResultSet rs = stmt.executeQuery();
+           |      rs.next();
+           |      number = rs.getRow();
+           |      java.lang.StringBuilder where = new java.lang.StringBuilder();
+           |      boolean isNull = true;
+           |      $wheres
+           |      if (dbType.equals("mysql")) if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where " + where + ";"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
+           |      if (dbType.equals("oracle")) if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where " + where; else prepareSQL = "insert into ${table.getValue} ($args) values ($values)";
+           |      stmt = conn.prepareStatement(prepareSQL);
+           |      $stmt
+           |      int i = ${fields2.size + 1};
+           |      if (number > 0) {
+           |         $stmt2
+           |      }
+           |      number = stmt.executeUpdate();
+           |      conn.commit();
+           |   } catch (Exception e) {
+           |      conn.rollback();
+           |      number = 0;
+           |   }
            |   conn.close();
-           |   return javax.ws.rs.core.Response.status(200).entity(number).build();
+           |   return javax.ws.rs.core.Response.status(200).entity("" + number).build();
            |}
          """.stripMargin
-      val arg = fieldsWithKey.map(_._2).map(f => JavassistUtil.getCtClass(classPool, f.getType)) :+ classPool.get(model)
-      createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl, arg.toArray, putterService, body, "PUT")
+      val arg = fields2.map(_._2).map(f => JavassistUtil.getCtClass(classPool, f.getType)) :+ classPool.get(model)
+      createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl, arg.toArray, putterService, body, "PUT", table)
     })
     writeClassFile(putterService, "PutterService.class")
     this
@@ -271,7 +289,7 @@ class RestCreater(xml: XmlLoader) {
            |}
          """.stripMargin
       val arg = fieldsWithKey.map(_._2).map(f => JavassistUtil.getCtClass(classPool, f.getType))
-      createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl, arg.toArray, deleterService, body, "DELETE")
+      createOtherMethod(classPool.get("javax.ws.rs.core.Response"), table.getUrl, arg.toArray, deleterService, body, "DELETE", table)
     })
     writeClassFile(deleterService, "DeleterService.class")
     this
@@ -430,14 +448,13 @@ class RestCreater(xml: XmlLoader) {
     JavassistUtil.addAnnotation(getterServiceConst, m, annotationClasses, memberNames, memberValues)
   }
 
-  private def createOtherMethod(returnType: CtClass, url: String, parameters: Array[CtClass], declaring: CtClass, body: String, method: String): Unit = {
+  private def createOtherMethod(returnType: CtClass, url: String, parameters: Array[CtClass], declaring: CtClass, body: String, method: String, table: Table): Unit = {
     val serviceFile = declaring.getClassFile
     val serviceConst = serviceFile.getConstPool
     val mname = method.toLowerCase + url.substring(0, 1).toUpperCase + url.substring(1)
     val m = new CtMethod(returnType, mname, parameters, declaring)
     m.setModifiers(Modifier.PUBLIC)
     // 方法内的处理逻辑
-    //System.out.println(body)
     m.setBody(body)
     declaring.addMethod(m)
     // 给参数增加注解 @QueryParam @DefaultValue    参考：https://www.cnblogs.com/coshaho/p/5105545.html
@@ -455,14 +472,27 @@ class RestCreater(xml: XmlLoader) {
     if (method == "PUT") {
       val parameterAtrribute = new ParameterAnnotationsAttribute(serviceConst, ParameterAnnotationsAttribute.visibleTag)
       val paramArrays = new Array[Array[Annotation]](parameters.length)
-      val annot1 = new Annotation("javax.ws.rs.PathParam", serviceConst)
-      annot1.addMemberValue("value", new StringMemberValue("key", serviceConst))
-      paramArrays(0) = new Array[Annotation](1)
-      paramArrays(0)(0) = annot1
-      val annot2 = new Annotation("javax.ws.rs.DefaultValue", serviceConst)
-      annot2.addMemberValue("value", new StringMemberValue("", serviceConst))
-      paramArrays(1) = new Array[Annotation](1)
-      paramArrays(1)(0) = annot2
+      for (i <- 0 until table.getFields.size()) {
+        if (table.getFields.get(i).isPrimaryKey) {
+          val annot1 = new Annotation("javax.ws.rs.PathParam", serviceConst)
+          annot1.addMemberValue("value", new StringMemberValue("key", serviceConst))
+          paramArrays(i) = new Array[Annotation](1)
+          paramArrays(i)(0) = annot1
+        } else {
+          val field = table.getFields.get(i)
+          val annot1 = new Annotation("javax.ws.rs.QueryParam", serviceConst)
+          annot1.addMemberValue("value", new StringMemberValue(field.getValue, serviceConst))
+          paramArrays(i) = new Array[Annotation](2)
+          paramArrays(i)(1) = annot1
+          val annot2 = new Annotation("javax.ws.rs.DefaultValue", serviceConst)
+          annot2.addMemberValue("value", new StringMemberValue("", serviceConst))
+          paramArrays(i)(0) = annot2
+        }
+      }
+      val annot = new Annotation("javax.ws.rs.DefaultValue", serviceConst)
+      annot.addMemberValue("value", new StringMemberValue("", serviceConst))
+      paramArrays(table.getFields.size()) = new Array[Annotation](1)
+      paramArrays(table.getFields.size())(0) = annot
       parameterAtrribute.setAnnotations(paramArrays)
       if (m != null) m.getMethodInfo.addAttribute(parameterAtrribute)
     }
