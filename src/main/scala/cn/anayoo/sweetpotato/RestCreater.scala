@@ -225,8 +225,8 @@ class RestCreater(xml: XmlLoader) {
            |      conn.setAutoCommit(false);
            |      java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
            |      java.lang.String prepareSQL = "";
-           |      if (dbType.equals("mysql")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey;";
-           |      if (dbType.equals("oracle")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey";
+           |      if (dbType.equals("mysql")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey for update;";
+           |      if (dbType.equals("oracle")) prepareSQL = "select 1 from ${table.getValue} where $whereWithKey for update";
            |      java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |      $stmtWithKey
            |      java.sql.ResultSet rs = stmt.executeQuery();
