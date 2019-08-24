@@ -127,11 +127,11 @@ class RestCreater(xml: XmlLoader) {
            |      calc = ((String)k).indexOf('<') != -1 ? "<" : ">";
            |      int index = ((String)k).indexOf('<') != -1 ? ((String)k).indexOf('<') : ((String)k).indexOf('>');
            |      k1 = ((String)k).substring(0, index);
-           |      v1 = ((String)k).replaceAll("'","").substring(index + 1);
+           |      v1 = ((String)k).substring(index + 1);
            |    } else if (((String)v).indexOf(',') != -1) {
            |      k1 = ((String)k);
            |      calc = "in";
-           |      String [] varg = ((String)v).replaceAll("'","").split(",");
+           |      String [] varg = ((String)v).split(",");
            |      v1 += "(";
            |      for (int i = 0; i < varg.length; i ++) {
            |        v1 += (varg[i].replaceAll(varg[i], "'" + varg[i] + "'"));
@@ -145,14 +145,14 @@ class RestCreater(xml: XmlLoader) {
            |    } else if (((String)v).contains("%")) {
            |      k1 = ((String)k);
            |      calc = "like";
-           |      v1 = "'" + ((String)v).replaceAll("'","") + "'";
+           |      v1 = ((String)v);
            |    } else {
            |      k1 = ((String)k);
            |      calc = "=";
-           |      v1 = "'" + ((String)v).replaceAll("'","") + "'";
+           |      v1 = ((String)v);
            |    }
            |    if (k1.equals("count") && v1.equals("true")) count = true;
-           |    if (k1.equals("order") && fields.contains(k1)) order = v1;
+           |    if (k1.equals("order") && fields.contains(v1)) order = v1;
            |    if (k1.equals("orderType") && v1.equals("desc")) orderType = v1;
            |    try {
            |      if (k1.equals("page")) page = Integer.parseInt(v1);
