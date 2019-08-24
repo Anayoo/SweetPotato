@@ -1,19 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <root>
     <datasource name="demo">
-        <url>jdbc:mysql://localhost:3306/test?useUnicode=yes&amp;characterEncoding=UTF-8</url>
+        <url>jdbc:mysql://mysql:3306/test?useUnicode=yes&amp;characterEncoding=UTF-8</url>
         <username>root</username>
         <password>123456</password>
         <connectionTimeout>3000</connectionTimeout>
     </datasource>
-    <datasource name="test">
-        <url>jdbc:oracle:thin:@localhost:1521/testdb.localdomain</url>
-        <username>test</username>
-        <password>123456</password>
-    </datasource>
 
-    <table name="user" datasource="demo" value="test_user" autoBuild="true" url="user" pageSize="16">
-        <field value="username" regex="^[A-Za-z0-9]{6,16}$" allowNone="false" />
-    </table>
-    <table name="oracle_user" datasource="test" value="test_user" url="oracle_user" />
+    <table name="user" datasource="demo" value="test_user" autoBuild="true" url="user" pageSize="16" />
 </root>

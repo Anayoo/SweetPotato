@@ -92,7 +92,6 @@ public class XmlLoader {
             if (autoBuild) {
                 fields.addAll(dbFields.values());
                 Collections.sort(fields);
-                System.out.println(fields);
                 // 如果order和key不主动定义，取第一个field
                 key = key.equals("") ? fields.get(0).getValue() : key;
                 order = order.equals("") ? fields.get(0).getValue() : order;

@@ -3,9 +3,10 @@ eureka:
     register-with-eureka: false
     fetch-registry: false
     serviceUrl:
-      defaultZone: http://eureka:8060/eureka/
+      defaultZone: http://localhost:8000/eureka/
 server:
   port: 8080
+  max-http-header-size: 4048576
 spring:
   application:
     name: sweetpotato

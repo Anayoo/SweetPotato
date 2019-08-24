@@ -9,9 +9,9 @@
         <version>2.1.5.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>anayoo</groupId>
+    <groupId>cn.anayoo</groupId>
     <artifactId>sweetpotato</artifactId>
-    <version>1.3</version>
+    <version>1.4</version>
     <name>SweetPotato</name>
     <description>A database restful API server</description>
 
@@ -221,7 +221,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <repository>${project.groupId}/${project.artifactId}</repository>
+                    <repository>anayoo/${project.artifactId}</repository>
                     <tag>${project.version}</tag>
                     <buildArgs>
                         <JAR_FILE>${project.build.finalName}.jar</JAR_FILE>

@@ -103,54 +103,154 @@ class RestCreater(xml: XmlLoader) {
       createGetterMethod(xml, classPool.get(model), table.getUrl, parameters, getterService, body, table)
 
       // GETS
-      val parameters2 = parameters :+ classPool.get("int") :+ classPool.get("int") :+ classPool.get("java.lang.String") :+ classPool.get("java.lang.String") :+ classPool.get("boolean")
+      val getsFields = table.getFields.asScala.map("  fields.add(\"" + _.getValue + "\");").mkString("\n")
       val body2 =
         s"""{
-           |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
-           |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
-           |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
-           |   java.lang.StringBuilder where = new java.lang.StringBuilder();
-           |   boolean isNull = true;
-           |   $wheres
-           |   java.lang.String whereStr = isNull ? "" : " where " + where.toString();
-           |   int limitStart = $$${fields.size + 1} * ($$${fields.size + 2} - 1);
-           |   java.lang.String prepareSQL = "";
-           |   if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " limit " + limitStart + ", " + $$${fields.size + 1} + ";";
-           |   if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " offset " + limitStart + " rows fetch next " + $$${fields.size + 1} + " rows only";
-           |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
-           |   int i = 1;
-           |   $stmts
-           |   java.sql.ResultSet rs = stmt.executeQuery();
-           |   java.util.List args = new java.util.ArrayList();
-           |   while(rs.next()) {
-           |      $model arg = new $model();
-           |      $rs
-           |      args.add(arg);
-           |   }
-           |   $modelPage page = new $modelPage();
-           |   page.setData(args);
-           |   cn.anayoo.sweetpotato.model.Setting setting = new cn.anayoo.sweetpotato.model.Setting();
-           |   setting.setPageSize($$${fields.size + 1});
-           |   setting.setPage($$${fields.size + 2});
-           |   setting.setOrder($$${fields.size + 3});
-           |   setting.setOrderType($$${fields.size + 4});
-           |   if ($$${fields.size + 5}) {
-           |      if (dbType.equals("mysql")) prepareSQL = "select count(1) from ${table.getValue} " + whereStr + ";";
-           |      if (dbType.equals("oracle")) prepareSQL = "select count(1) from ${table.getValue} " + whereStr;
-           |      stmt = conn.prepareStatement(prepareSQL);
-           |      i = 1;
-           |      $stmts
-           |      rs = stmt.executeQuery();
-           |      if (rs.next()) {
-           |         setting.setCount(java.lang.Integer.valueOf(rs.getInt(1)));
+           |  java.util.List/*<String>*/ fields = new java.util.ArrayList();
+           |$getsFields
+           |  String order = "${table.getOrder}";
+           |  String orderType = "${table.getOrderType}";
+           |  int page = 1;
+           |  int pageSize = ${table.getPageSize};
+           |  boolean count = false;
+           |  String wheres = "";
+           |  int find = 0;
+           |  java.util.Iterator/*<String>*/ keys = $$2.getQueryParameters().keySet().iterator();
+           |  while (keys.hasNext()) {
+           |    String k = keys.next();
+           |    java.util.List/*<String>*/ vs = $$2.getQueryParameters().get(k);
+           |    String v = vs.get(0);
+           |    String k1 = "";
+           |    String v1 = "";
+           |    String calc = "";
+           |    if (((String)v).equals("") && (((String)k).indexOf('<') != -1 || ((String)k).indexOf('>') != -1)) {
+           |      calc = ((String)k).indexOf('<') != -1 ? "<" : ">";
+           |      int index = ((String)k).indexOf('<') != -1 ? ((String)k).indexOf('<') : ((String)k).indexOf('>');
+           |      k1 = ((String)k).substring(0, index);
+           |      v1 = ((String)k).replaceAll("'","").substring(index + 1);
+           |    } else if (((String)v).indexOf(',') != -1) {
+           |      k1 = ((String)k);
+           |      calc = "in";
+           |      String [] varg = ((String)v).replaceAll("'","").split(",");
+           |      v1 += "(";
+           |      for (int i = 0; i < varg.length; i ++) {
+           |        v1 += (varg[i].replaceAll(varg[i], "'" + varg[i] + "'"));
+           |        if (i != varg.length - 1) v1 += ",";
            |      }
-           |   }
-           |   conn.close();
-           |   page.setSetting(setting);
-           |   return page;
+           |      v1 += ")";
+           |    } else if (((String)k).substring(((String)k).length() - 1).equals("<") || ((String)k).substring(((String)k).length() - 1).equals(">") || ((String)k).substring(((String)k).length() - 1).equals("!")) {
+           |      k1 = ((String)k).substring(0, ((String)k).length() - 1);
+           |      calc = ((String)k).substring(((String)k).length() - 1).equals("<") ? "<=" : ((String)k).substring(((String)k).length() - 1).equals(">") ? ">=" : "!=";
+           |      v1 = ((String)v);
+           |    } else if (((String)v).contains("%")) {
+           |      k1 = ((String)k);
+           |      calc = "like";
+           |      v1 = "'" + ((String)v).replaceAll("'","") + "'";
+           |    } else {
+           |      k1 = ((String)k);
+           |      calc = "=";
+           |      v1 = "'" + ((String)v).replaceAll("'","") + "'";
+           |    }
+           |    if (k1.equals("count") && v1.equals("true")) count = true;
+           |    if (k1.equals("order") && fields.contains(k1)) order = v1;
+           |    if (k1.equals("orderType") && v1.equals("desc")) orderType = v1;
+           |    try {
+           |      if (k1.equals("page")) page = Integer.parseInt(v1);
+           |    } catch (Exception e) {
+           |    }
+           |    try {
+           |      if (k1.equals("pageSize")) pageSize = Integer.parseInt(v1);
+           |    } catch (Exception e) {
+           |    }
+           |    if (fields.contains(k1) && find == 0) {
+           |      find = find + 1;
+           |      wheres = " where " + k1 + " " + calc + " " + v1;
+           |    } else if (fields.contains(k1) && find != 0) {
+           |      wheres = wheres + " and " + k1 + " " + calc + " " + v1;
+           |    }
+           |  }
+           |  cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
+           |  java.sql.Connection conn = pool.getConn("${table.getDatasource}");
+           |  java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
+           |  int limitStart = pageSize * (page - 1);
+           |  String prepareSQL = "";
+           |  if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order + " " + orderType + " limit " + limitStart + ", " + pageSize + ";";
+           |  if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order + " " + orderType + " offset " + limitStart + " rows fetch next " + pageSize + " rows only";
+           |  java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
+           |  java.sql.ResultSet rs = stmt.executeQuery();
+           |  java.util.List args = new java.util.ArrayList();
+           |  while(rs.next()) {
+           |    $model arg = new $model();
+           |    $rs
+           |    args.add(arg);
+           |  }
+           |  $modelPage modelPage = new $modelPage();
+           |  modelPage.setData(args);
+           |  cn.anayoo.sweetpotato.model.Setting setting = new cn.anayoo.sweetpotato.model.Setting();
+           |  setting.setPageSize(pageSize);
+           |  setting.setPage(page);
+           |  setting.setOrder(order);
+           |  setting.setOrderType(orderType);
+           |  if (count) {
+           |    if (dbType.equals("mysql")) prepareSQL = "select count(1) from ${table.getValue}" + wheres + ";";
+           |    if (dbType.equals("oracle")) prepareSQL = "select count(1) from ${table.getValue}" + wheres;
+           |    stmt = conn.prepareStatement(prepareSQL);
+           |    rs = stmt.executeQuery();
+           |    if (rs.next()) {
+           |      setting.setCount(java.lang.Integer.valueOf(rs.getInt(1)));
+           |    }
+           |  }
+           |  conn.close();
+           |  modelPage.setSetting(setting);
+           |  return modelPage;
            |}
          """.stripMargin
-      createGetterMethod(xml, classPool.get(modelPage), table.getGets, parameters2, getterService, body2, table)
+//        s"""{
+//           |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
+//           |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
+//           |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
+//           |   java.lang.StringBuilder where = new java.lang.StringBuilder();
+//           |   boolean isNull = true;
+//           |   $wheres
+//           |   java.lang.String whereStr = isNull ? "" : " where " + where.toString();
+//           |   int limitStart = $$${fields.size + 1} * ($$${fields.size + 2} - 1);
+//           |   java.lang.String prepareSQL = "";
+//           |   if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " limit " + limitStart + ", " + $$${fields.size + 1} + ";";
+//           |   if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + whereStr + " order by " + $$${fields.size + 3} + " " + $$${fields.size + 4} + " offset " + limitStart + " rows fetch next " + $$${fields.size + 1} + " rows only";
+//           |   java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
+//           |   int i = 1;
+//           |   $stmts
+//           |   java.sql.ResultSet rs = stmt.executeQuery();
+//           |   java.util.List args = new java.util.ArrayList();
+//           |   while(rs.next()) {
+//           |      $model arg = new $model();
+//           |      $rs
+//           |      args.add(arg);
+//           |   }
+//           |   $modelPage page = new $modelPage();
+//           |   page.setData(args);
+//           |   cn.anayoo.sweetpotato.model.Setting setting = new cn.anayoo.sweetpotato.model.Setting();
+//           |   setting.setPageSize($$${fields.size + 1});
+//           |   setting.setPage($$${fields.size + 2});
+//           |   setting.setOrder($$${fields.size + 3});
+//           |   setting.setOrderType($$${fields.size + 4});
+//           |   if ($$${fields.size + 5}) {
+//           |      if (dbType.equals("mysql")) prepareSQL = "select count(1) from ${table.getValue} " + whereStr + ";";
+//           |      if (dbType.equals("oracle")) prepareSQL = "select count(1) from ${table.getValue} " + whereStr;
+//           |      stmt = conn.prepareStatement(prepareSQL);
+//           |      i = 1;
+//           |      $stmts
+//           |      rs = stmt.executeQuery();
+//           |      if (rs.next()) {
+//           |         setting.setCount(java.lang.Integer.valueOf(rs.getInt(1)));
+//           |      }
+//           |   }
+//           |   conn.close();
+//           |   page.setSetting(setting);
+//           |   return page;
+//           |}
+//         """.stripMargin
+      createGetsMethod(xml, classPool.get(modelPage), table.getGets, getterService, body2, table)
     })
     writeClassFile(getterService, "GetterService.class")
     this
@@ -445,6 +545,39 @@ class RestCreater(xml: XmlLoader) {
     jsonArrayMemberValue.setValue(Array[MemberValue](new StringMemberValue("application/json;charset=utf-8", getterServiceConst)))
     val memberValues = Array[Array[MemberValue]](Array(), Array(if (returnType == classPool.get(pageFullName)) new StringMemberValue("/" + url, getterServiceConst)
     else new StringMemberValue("/" + url + "/{key}", getterServiceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
+    JavassistUtil.addAnnotation(getterServiceConst, m, annotationClasses, memberNames, memberValues)
+  }
+
+  private def createGetsMethod(xml: XmlLoader, returnType: CtClass, url: String, declaring: CtClass, body: String, table: Table): Unit = {
+    val getterServiceFile = declaring.getClassFile
+    val getterServiceConst = getterServiceFile.getConstPool
+    val mname = "get" + url.substring(0, 1).toUpperCase + url.substring(1)
+    val parameters = Array[CtClass](JavassistUtil.getCtClass(classPool, "javax.ws.rs.core.Request"), JavassistUtil.getCtClass(classPool, "javax.ws.rs.core.UriInfo"))
+    val m = new CtMethod(returnType, mname, parameters, declaring)
+    m.setModifiers(Modifier.PUBLIC)
+    // 方法内的处理逻辑
+    //System.out.println(body)
+    m.setBody(body)
+    declaring.addMethod(m)
+    // 给参数增加注解 @Context
+    val parameterAtrribute = new ParameterAnnotationsAttribute(getterServiceConst, ParameterAnnotationsAttribute.visibleTag)
+    val paramArrays = new Array[Array[Annotation]](parameters.length)
+    val sqlArrays = Array[String]("pageSize", "page", "order", "orderType", "count")
+    val sqlDefaultArrays = Array[String]("" + table.getPageSize, "1", table.getOrder, table.getOrderType, "false")
+    val pageFullName = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase + table.getName.substring(1) + "Page"
+    paramArrays(0) = new Array[Annotation](1)
+    paramArrays(0)(0) = new Annotation("javax.ws.rs.core.Context", getterServiceConst)
+    paramArrays(1) = new Array[Annotation](1)
+    paramArrays(1)(0) = new Annotation("javax.ws.rs.core.Context", getterServiceConst)
+
+    parameterAtrribute.setAnnotations(paramArrays)
+    if (m != null) m.getMethodInfo.addAttribute(parameterAtrribute)
+    // 给方法增加注解@GET @Path("/$url") @Consumes({"application/json"}) @Produces({"application/json"})
+    val annotationClasses = Array[String]("javax.ws.rs.GET", "javax.ws.rs.Path", "javax.ws.rs.Consumes", "javax.ws.rs.Produces")
+    val memberNames = Array[Array[String]](Array(), Array("value"), Array("value"), Array("value"))
+    val jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", getterServiceConst), getterServiceConst)
+    jsonArrayMemberValue.setValue(Array[MemberValue](new StringMemberValue("application/json;charset=utf-8", getterServiceConst)))
+    val memberValues = Array[Array[MemberValue]](Array(), Array(new StringMemberValue("/" + url, getterServiceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
     JavassistUtil.addAnnotation(getterServiceConst, m, annotationClasses, memberNames, memberValues)
   }
 

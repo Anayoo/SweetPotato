@@ -27,7 +27,7 @@
         name: sweetpotato
     ```
     DEMO: potatoes.xml
-    
+
     see: [potatoes.md](https://github.com/Anayoo/SweetPotato/blob/master/potatoes.md)
     ```code
     <?xml version="1.0" encoding="UTF-8"?>
@@ -43,7 +43,7 @@
             <username>test</username>
             <password>123456</password>
         </datasource>
-    
+
         <table name="user" datasource="demo" value="test_user" autoBuild="true" url="user" pageSize="16">
             <field value="username" regex="^[A-Za-z0-9]{6,16}$" allowNone="false" />
         </table>
@@ -60,7 +60,7 @@
 #### REQUEST
 GET http://x.x.x.x:xx/basic/user/1
 #### RESPONSE
-Status Code: 200 
+Status Code: 200
 
 Content-Type: application/json;charset=utf-8
 ```json
@@ -81,7 +81,7 @@ Status Code: 204
 #### REQUEST
 GET http://x.x.x.x:xx/basic/users
 #### RESPONSE
-Status Code: 200 
+Status Code: 200
 
 Content-Type: application/json;charset=utf-8
 ```json
@@ -105,27 +105,108 @@ Content-Type: application/json;charset=utf-8
 }
 ```
 
-### 获取用户列表（根据username排序，只取第一项，统计该查询条件下的总数）
+### 获取用户列表（根据username倒序，每页1项，查询第2页，统计该查询条件下的总数）
 #### REQUEST
-GET http://x.x.x.x:xx/basic/users?order=username&pageSize=1&count=true
+GET http://x.x.x.x:xx/basic/users?order=username&orderType=desc&pageSize=1&page=2&count=true
 #### RESPONSE
-Status Code: 200 
+Status Code: 200
 
 Content-Type: application/json;charset=utf-8
 ```json
 {
-	"data": [{
-		"id": 2,
-		"username": "test",
-		"password": "234567"
-	}],
-	"setting": {
-		"order": "username",
-		"orderType": "asc",
-		"page": 1,
-		"pageSize": 1,
-		"count": 2
-	}
+  "data": [
+    {
+      "id": "2",
+      "password": "234567",
+      "username": "test"
+    }
+  ],
+  "setting": {
+    "order": "username",
+    "orderType": "desc",
+    "page": 2,
+    "pageSize": 1,
+    "count": 2
+  }
+}
+```
+
+### 获取用户列表（对username使用模糊查询）
+> 浏览器URL中使用%应转义为%25
+#### REQUEST
+GET http://x.x.x.x:xx/basic/users?username=%25user
+#### RESPONSE
+Status Code: 200
+
+Content-Type: application/json;charset=utf-8
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "password": "123456",
+      "username": "testuser"
+    }
+  ],
+  "setting": {
+    "order": "id",
+    "orderType": "asc",
+    "page": 1,
+    "pageSize": 16,
+    "count": null
+  }
+}
+```
+
+### 获取用户列表（查询id>=2）
+#### REQUEST
+GET http://x.x.x.x:xx/basic/users?id>=2
+#### RESPONSE
+Status Code: 200
+
+Content-Type: application/json;charset=utf-8
+```json
+{
+  "data": [
+    {
+      "id": "2",
+      "password": "234567",
+      "username": "test"
+    }
+  ],
+  "setting": {
+    "order": "id",
+    "orderType": "asc",
+    "page": 1,
+    "pageSize": 16,
+    "count": null
+  }
+}
+```
+
+### 获取用户列表（查询username为testuser或user1）
+#### REQUEST
+GET http://x.x.x.x:xx/basic/users?username=testuser,user1
+#### RESPONSE
+Status Code: 200
+
+Content-Type: application/json;charset=utf-8
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "password": "123456",
+      "username": "testuser"
+    }
+  ],
+  "setting": {
+    "order": "id",
+    "orderType": "asc",
+    "page": 1,
+    "pageSize": 16,
+    "count": null
+  }
 }
 ```
 
@@ -141,7 +222,7 @@ Content-Type: application/json;charset=utf-8
 }
 ```
 #### RESPONSE
-Status Code: 200 
+Status Code: 200
 
 Content-Type: application/json;charset=utf-8
 ```json
@@ -160,7 +241,7 @@ Content-Type: application/json;charset=utf-8
 }
 ```
 #### RESPONSE
-Status Code: 200 
+Status Code: 200
 
 Content-Type: application/json;charset=utf-8
 ```json
@@ -171,7 +252,7 @@ Content-Type: application/json;charset=utf-8
 #### REQUEST
 DELETE http://x.x.x.x:xx/basic/user/3
 #### RESPONSE
-Status Code: 200 
+Status Code: 200
 
 Content-Type: application/json;charset=utf-8
 ```json
