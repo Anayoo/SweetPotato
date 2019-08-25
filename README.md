@@ -210,6 +210,37 @@ Content-Type: application/json;charset=utf-8
 }
 ```
 
+### 获取用户列表（根据id, username字段排序）
+#### REQUEST
+GET http://x.x.x.x:xx/basic/users?order=id,username
+#### RESPONSE
+Status Code: 200
+
+Content-Type: application/json;charset=utf-8
+```json
+{
+  "data": [
+    {
+      "id": "1",
+      "password": "123456",
+      "username": "testuser"
+    },
+    {
+      "id": "2",
+      "password": "234567",
+      "username": "test"
+    }
+  ],
+  "setting": {
+    "order": "id, username",
+    "orderType": "asc",
+    "page": 1,
+    "pageSize": 16,
+    "count": null
+  }
+}
+```
+
 ### 插入一条新的用户数据
 #### REQUEST
 POST http://x.x.x.x:xx/basic/user

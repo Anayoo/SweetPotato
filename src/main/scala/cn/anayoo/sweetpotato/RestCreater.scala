@@ -116,6 +116,7 @@ class RestCreater(xml: XmlLoader) {
            |  String wheres = "";
            |  int find = 0;
            |  java.util.Iterator/*<String>*/ keys = $$2.getQueryParameters().keySet().iterator();
+           |  java.util.List/*<String>*/ args = new java.util.ArrayList();
            |  while (keys.hasNext()) {
            |    String k = keys.next();
            |    java.util.List/*<String>*/ vs = $$2.getQueryParameters().get(k);
@@ -127,32 +128,63 @@ class RestCreater(xml: XmlLoader) {
            |      calc = ((String)k).indexOf('<') != -1 ? "<" : ">";
            |      int index = ((String)k).indexOf('<') != -1 ? ((String)k).indexOf('<') : ((String)k).indexOf('>');
            |      k1 = ((String)k).substring(0, index);
-           |      v1 = ((String)k).substring(index + 1);
+           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
+           |        args.add(((String)k).substring(index + 1));
+           |        v1 = "?";
+           |      } else {
+           |        v1 = ((String)k).substring(index + 1);
+           |      }
            |    } else if (((String)v).indexOf(',') != -1) {
            |      k1 = ((String)k);
            |      calc = "in";
            |      String [] varg = ((String)v).split(",");
            |      v1 += "(";
            |      for (int i = 0; i < varg.length; i ++) {
-           |        v1 += (varg[i].replaceAll(varg[i], "'" + varg[i] + "'"));
-           |        if (i != varg.length - 1) v1 += ",";
+           |        if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
+           |          args.add(varg[i]);
+           |          v1 += "?";
+           |          if (i != varg.length - 1) v1 += ", ";
+           |        } else {
+           |          v1 += varg[i];
+           |          if (i != varg.length - 1) v1 += ", ";
+           |        }
            |      }
            |      v1 += ")";
            |    } else if (((String)k).substring(((String)k).length() - 1).equals("<") || ((String)k).substring(((String)k).length() - 1).equals(">") || ((String)k).substring(((String)k).length() - 1).equals("!")) {
            |      k1 = ((String)k).substring(0, ((String)k).length() - 1);
            |      calc = ((String)k).substring(((String)k).length() - 1).equals("<") ? "<=" : ((String)k).substring(((String)k).length() - 1).equals(">") ? ">=" : "!=";
-           |      v1 = ((String)v);
+           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
+           |        args.add((String)v);
+           |        v1 = "?";
+           |      } else v1 = ((String)v);
            |    } else if (((String)v).contains("%")) {
            |      k1 = ((String)k);
            |      calc = "like";
-           |      v1 = ((String)v);
+           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
+           |        args.add((String)v);
+           |        v1 = "?";
+           |      } else v1 = ((String)v);
            |    } else {
            |      k1 = ((String)k);
            |      calc = "=";
-           |      v1 = ((String)v);
+           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
+           |        args.add((String)v);
+           |        v1 = "?";
+           |      } else v1 = ((String)v);
            |    }
            |    if (k1.equals("count") && v1.equals("true")) count = true;
            |    if (k1.equals("order") && fields.contains(v1)) order = v1;
+           |    if (k1.equals("order") && v1.indexOf(",") != -1) {
+           |      v1 = v1.substring(1, v1.length() - 1);
+           |      String [] vorders = v1.split(", ");
+           |      order = "";
+           |      for (int j = 0; j < vorders.length; j ++) {
+           |        if (fields.contains(vorders[j])) {
+           |          order += vorders[j] + ", ";
+           |        }
+           |      }
+           |      order = order.substring(0, order.length() - 2);
+           |    }
            |    if (k1.equals("orderType") && v1.equals("desc")) orderType = v1;
            |    try {
            |      if (k1.equals("page")) page = Integer.parseInt(v1);
@@ -177,15 +209,18 @@ class RestCreater(xml: XmlLoader) {
            |  if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order + " " + orderType + " limit " + limitStart + ", " + pageSize + ";";
            |  if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order + " " + orderType + " offset " + limitStart + " rows fetch next " + pageSize + " rows only";
            |  java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
+           |  for (int i = 0; i < args.size(); i ++) {
+           |    stmt.setString(i + 1, (String) args.get(i));
+           |  }
            |  java.sql.ResultSet rs = stmt.executeQuery();
-           |  java.util.List args = new java.util.ArrayList();
+           |  java.util.List objArgs = new java.util.ArrayList();
            |  while(rs.next()) {
            |    $model arg = new $model();
            |    $rs
-           |    args.add(arg);
+           |    objArgs.add(arg);
            |  }
            |  $modelPage modelPage = new $modelPage();
-           |  modelPage.setData(args);
+           |  modelPage.setData(objArgs);
            |  cn.anayoo.sweetpotato.model.Setting setting = new cn.anayoo.sweetpotato.model.Setting();
            |  setting.setPageSize(pageSize);
            |  setting.setPage(page);
@@ -195,6 +230,9 @@ class RestCreater(xml: XmlLoader) {
            |    if (dbType.equals("mysql")) prepareSQL = "select count(1) from ${table.getValue}" + wheres + ";";
            |    if (dbType.equals("oracle")) prepareSQL = "select count(1) from ${table.getValue}" + wheres;
            |    stmt = conn.prepareStatement(prepareSQL);
+           |    for (int i = 0; i < args.size(); i ++) {
+           |      stmt.setString(i + 1, (String) args.get(i));
+           |    }
            |    rs = stmt.executeQuery();
            |    if (rs.next()) {
            |      setting.setCount(java.lang.Integer.valueOf(rs.getInt(1)));
