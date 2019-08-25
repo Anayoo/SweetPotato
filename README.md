@@ -1,5 +1,5 @@
 # SweetPotato
-基于Jersey的Restful API快速动态构建项目
+基于Jersey的Restful API快速动态构建项目，目前支持mysql及oracle12c数据库(由于oracle的license要求，需自行提供ojdbc依赖包)
 ## 快速启动
 1. 从docker.io检出sweetpotato
     ```bash
