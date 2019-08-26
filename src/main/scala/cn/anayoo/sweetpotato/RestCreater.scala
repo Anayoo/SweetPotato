@@ -167,7 +167,7 @@ class RestCreater(xml: XmlLoader) {
            |    } else {
            |      k1 = ((String)k);
            |      calc = "=";
-           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
+           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType") && !k1.equals("page") && !k1.equals("pageSize")) {
            |        args.add((String)v);
            |        v1 = "?";
            |      } else v1 = ((String)v);
