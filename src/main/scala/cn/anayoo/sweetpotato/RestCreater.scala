@@ -108,7 +108,7 @@ class RestCreater(xml: XmlLoader) {
         s"""{
            |  java.util.List/*<String>*/ fields = new java.util.ArrayList();
            |$getsFields
-           |  String order = "${table.getOrder}";
+           |  String order = "${table.getOrder} {}";
            |  String orderType = "${table.getOrderType}";
            |  int page = 1;
            |  int pageSize = ${table.getPageSize};
@@ -128,7 +128,7 @@ class RestCreater(xml: XmlLoader) {
            |      calc = ((String)k).indexOf('<') != -1 ? "<" : ">";
            |      int index = ((String)k).indexOf('<') != -1 ? ((String)k).indexOf('<') : ((String)k).indexOf('>');
            |      k1 = ((String)k).substring(0, index);
-           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
+           |      if (index != (((String)k).length() - 1) && !k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
            |        args.add(((String)k).substring(index + 1));
            |        v1 = "?";
            |      } else {
@@ -150,7 +150,7 @@ class RestCreater(xml: XmlLoader) {
            |        }
            |      }
            |      v1 += ")";
-           |    } else if (((String)k).substring(((String)k).length() - 1).equals("<") || ((String)k).substring(((String)k).length() - 1).equals(">") || ((String)k).substring(((String)k).length() - 1).equals("!")) {
+           |    } else if (!((String)v).equals("") && (((String)k).substring(((String)k).length() - 1).equals("<") || ((String)k).substring(((String)k).length() - 1).equals(">") || ((String)k).substring(((String)k).length() - 1).equals("!"))) {
            |      k1 = ((String)k).substring(0, ((String)k).length() - 1);
            |      calc = ((String)k).substring(((String)k).length() - 1).equals("<") ? "<=" : ((String)k).substring(((String)k).length() - 1).equals(">") ? ">=" : "!=";
            |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
@@ -167,20 +167,22 @@ class RestCreater(xml: XmlLoader) {
            |    } else {
            |      k1 = ((String)k);
            |      calc = "=";
-           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType") && !k1.equals("page") && !k1.equals("pageSize")) {
+           |      if (!((String)v).equals("") && !k1.equals("count") && !k1.equals("order") && !k1.equals("orderType") && !k1.equals("page") && !k1.equals("pageSize")) {
            |        args.add((String)v);
            |        v1 = "?";
            |      } else v1 = ((String)v);
            |    }
+           |    if (v1.equals("") && (calc.equals("=") || calc.equals("<=") || calc.equals(">=") || calc.equals("<") || calc.equals(">") || calc.equals("!=")))
+           |      continue;
            |    if (k1.equals("count") && v1.equals("true")) count = true;
-           |    if (k1.equals("order") && fields.contains(v1)) order = v1;
+           |    if (k1.equals("order") && fields.contains(v1)) order = v1 + " {}";
            |    if (k1.equals("order") && v1.indexOf(",") != -1) {
            |      v1 = v1.substring(1, v1.length() - 1);
            |      String [] vorders = v1.split(", ");
            |      order = "";
            |      for (int j = 0; j < vorders.length; j ++) {
            |        if (fields.contains(vorders[j])) {
-           |          order += vorders[j] + ", ";
+           |          order += vorders[j] + " {}, ";
            |        }
            |      }
            |      order = order.substring(0, order.length() - 2);
@@ -206,8 +208,8 @@ class RestCreater(xml: XmlLoader) {
            |  java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
            |  int limitStart = pageSize * (page - 1);
            |  String prepareSQL = "";
-           |  if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order + " " + orderType + " limit " + limitStart + ", " + pageSize + ";";
-           |  if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order + " " + orderType + " offset " + limitStart + " rows fetch next " + pageSize + " rows only";
+           |  if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order.replaceAll("\\\\{}", orderType) + " limit " + limitStart + ", " + pageSize + ";";
+           |  if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order.replaceAll("\\\\{}", orderType) + " offset " + limitStart + " rows fetch next " + pageSize + " rows only";
            |  java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |  for (int i = 0; i < args.size(); i ++) {
            |    stmt.setString(i + 1, (String) args.get(i));
@@ -224,7 +226,7 @@ class RestCreater(xml: XmlLoader) {
            |  cn.anayoo.sweetpotato.model.Setting setting = new cn.anayoo.sweetpotato.model.Setting();
            |  setting.setPageSize(pageSize);
            |  setting.setPage(page);
-           |  setting.setOrder(order);
+           |  setting.setOrder(order.replaceAll("[\\\\{}| ]", ""));
            |  setting.setOrderType(orderType);
            |  if (count) {
            |    if (dbType.equals("mysql")) prepareSQL = "select count(1) from ${table.getValue}" + wheres + ";";
