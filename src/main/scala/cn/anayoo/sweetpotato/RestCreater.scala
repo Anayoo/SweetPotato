@@ -124,7 +124,128 @@ class RestCreater(xml: XmlLoader) {
            |    String k1 = "";
            |    String v1 = "";
            |    String calc = "";
-           |    if (((String)v).equals("") && (((String)k).indexOf('<') != -1 || ((String)k).indexOf('>') != -1)) {
+           |    String or = "";
+           |    if (((String) k).indexOf('|') != -1 || ((String) v).indexOf('|') != -1) {
+           |      calc = "or";
+           |      String all = "";
+           |      if (((String) v).equals("")) {
+           |        all = (String) k;
+           |      } else {
+           |        all = (String) k + "=" + (String) v;
+           |      }
+           |      while(all.length() != 0) {
+           |        int i = all.indexOf("|");
+           |        String v5 = "";
+           |        if (i != -1) {
+           |          v5 = all.substring(0, i);
+           |          all = all.substring(i + 1);
+           |        } else {
+           |          v5 = all;
+           |          all = "";
+           |        }
+           |        if (!v5.equals("")) {
+           |          if (v5.indexOf("<=") != -1) {
+           |            int i1 = v5.indexOf("<=");
+           |            if (fields.contains(v5.substring(0, i1))) {
+           |              if (!or.equals("")) {
+           |                or = or + " or ";
+           |              }
+           |              or = or + v5.substring(0, i1) + " <= ?";
+           |              args.add(v5.substring(i1 + 1));
+           |            }
+           |          } else if (v5.indexOf(">=") != -1) {
+           |            int i1 = v5.indexOf(">=");
+           |            if (fields.contains(v5.substring(0, i1))) {
+           |              if (!or.equals("")) {
+           |                or = or + " or ";
+           |              }
+           |              or = or + v5.substring(0, i1) + " >= ?";
+           |              args.add(v5.substring(i1 + 1));
+           |            }
+           |          } else if (v5.indexOf("<") != -1) {
+           |            int i1 = v5.indexOf("<");
+           |            if (fields.contains(v5.substring(0, i1))) {
+           |              if (!or.equals("")) {
+           |                or = or + " or ";
+           |              }
+           |              or = or + v5.substring(0, i1) + " < ?";
+           |              args.add(v5.substring(i1 + 1));
+           |            }
+           |          } else if (v5.indexOf(">") != -1) {
+           |            int i1 = v5.indexOf(">");
+           |            if (fields.contains(v5.substring(0, i1))) {
+           |              if (!or.equals("")) {
+           |                or = or + " or ";
+           |              }
+           |              or = or + v5.substring(0, i1) + " > ?";
+           |              args.add(v5.substring(i1 + 1));
+           |            }
+           |          } else if (v5.indexOf(">=") != -1) {
+           |            int i1 = v5.indexOf(">=");
+           |            if (fields.contains(v5.substring(0, i1))) {
+           |              if (!or.equals("")) {
+           |                or = or + " or ";
+           |              }
+           |              or = or + v5.substring(0, i1) + " >= ?";
+           |              args.add(v5.substring(i1 + 1));
+           |            }
+           |          } else if (v5.indexOf("!=") != -1) {
+           |            int i1 = v5.indexOf("!=");
+           |            if (fields.contains(v5.substring(0, i1))) {
+           |              if (!or.equals("")) {
+           |                or = or + " or ";
+           |              }
+           |              String v6 = v5.substring(i1 + 1);
+           |              if (v6.indexOf(',') != -1) {
+           |                or = or + v5.substring(0, i1) + " not in (";
+           |                String [] aarg = v6.split(",");
+           |                for (int i = 0; i < aarg.length; i ++) {
+           |                  or = or + "?";
+           |                  if (i != aarg.length - 1) {
+           |                    or = or + ", ";
+           |                  }
+           |                  args.add(aarg[i]);
+           |                }
+           |                or = or + ")";
+           |              } else if (v6.contains("%")) {
+           |                or = or + v5.substring(0, i1) + " not like ?";
+           |                args.add(v5.substring(i1 + 1));
+           |              } else {
+           |                or = or + v5.substring(0, i1) + " != ?";
+           |                args.add(v5.substring(i1 + 1));
+           |              }
+           |            }
+           |          } else if (v5.indexOf("=") != -1) {
+           |            int i1 = v5.indexOf("=");
+           |            if (fields.contains(v5.substring(0, i1))) {
+           |              if (!or.equals("")) {
+           |                or = or + " or ";
+           |              }
+           |              String v6 = v5.substring(i1 + 1);
+           |              if (v6.indexOf(',') != -1) {
+           |                or = or + v5.substring(0, i1) + " in (";
+           |                String [] aarg = v6.split(",");
+           |                for (int i = 0; i < aarg.length; i ++) {
+           |                  or = or + "?";
+           |                  if (i != aarg.length - 1) {
+           |                    or = or + ", ";
+           |                  }
+           |                  args.add(aarg[i]);
+           |                }
+           |                or = or + ")";
+           |              } else if (v6.contains("%")) {
+           |                or = or + v5.substring(0, i1) + " like ?";
+           |                args.add(v5.substring(i1 + 1));
+           |              } else {
+           |                or = or + v5.substring(0, i1) + " = ?";
+           |                args.add(v5.substring(i1 + 1));
+           |              }
+           |            }
+           |          }
+           |        }
+           |      }
+           |      or = "(" + or + ")";
+           |    } else if (((String)v).equals("") && (((String)k).indexOf('<') != -1 || ((String)k).indexOf('>') != -1)) {
            |      calc = ((String)k).indexOf('<') != -1 ? "<" : ">";
            |      int index = ((String)k).indexOf('<') != -1 ? ((String)k).indexOf('<') : ((String)k).indexOf('>');
            |      k1 = ((String)k).substring(0, index);
@@ -136,7 +257,16 @@ class RestCreater(xml: XmlLoader) {
            |      }
            |    } else if (((String)v).indexOf(',') != -1) {
            |      k1 = ((String)k);
-           |      calc = "in";
+           |      boolean not = false;
+           |      if (((String)k).substring(((String)k).length() - 1).equals("!")) {
+           |        not = true;
+           |        k1 = k1.substring(0, k1.length() - 1);
+           |      }
+           |      if (not) {
+           |        calc = "not in";
+           |      } else {
+           |        calc = "in";
+           |      }
            |      String [] varg = ((String)v).split(",");
            |      v1 += "(";
            |      for (int i = 0; i < varg.length; i ++) {
@@ -150,7 +280,7 @@ class RestCreater(xml: XmlLoader) {
            |        }
            |      }
            |      v1 += ")";
-           |    } else if (!((String)v).equals("") && (((String)k).substring(((String)k).length() - 1).equals("<") || ((String)k).substring(((String)k).length() - 1).equals(">") || ((String)k).substring(((String)k).length() - 1).equals("!"))) {
+           |    } else if (!((String)v).equals("") && (((String)k).substring(((String)k).length() - 1).equals("<") || ((String)k).substring(((String)k).length() - 1).equals(">"))) {
            |      k1 = ((String)k).substring(0, ((String)k).length() - 1);
            |      calc = ((String)k).substring(((String)k).length() - 1).equals("<") ? "<=" : ((String)k).substring(((String)k).length() - 1).equals(">") ? ">=" : "!=";
            |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
@@ -159,14 +289,32 @@ class RestCreater(xml: XmlLoader) {
            |      } else v1 = ((String)v);
            |    } else if (((String)v).contains("%")) {
            |      k1 = ((String)k);
-           |      calc = "like";
+           |      boolean not = false;
+           |      if (((String)k).substring(((String)k).length() - 1).equals("!")) {
+           |        not = true;
+           |        k1 = k1.substring(0, k1.length() - 1);
+           |      }
+           |      if (not) {
+           |        calc = "not like";
+           |      } else {
+           |        calc = "like";
+           |      }
            |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
            |        args.add((String)v);
            |        v1 = "?";
            |      } else v1 = ((String)v);
            |    } else {
            |      k1 = ((String)k);
-           |      calc = "=";
+           |      boolean not = false;
+           |      if (((String)k).substring(((String)k).length() - 1).equals("!")) {
+           |        not = true;
+           |        k1 = k1.substring(0, k1.length() - 1);
+           |      }
+           |      if (not) {
+           |        calc = "!=";
+           |      } else {
+           |        calc = "=";
+           |      }
            |      if (!((String)v).equals("") && !k1.equals("count") && !k1.equals("order") && !k1.equals("orderType") && !k1.equals("page") && !k1.equals("pageSize")) {
            |        args.add((String)v);
            |        v1 = "?";
@@ -196,7 +344,13 @@ class RestCreater(xml: XmlLoader) {
            |      if (k1.equals("pageSize")) pageSize = Integer.parseInt(v1);
            |    } catch (Exception e) {
            |    }
-           |    if (fields.contains(k1) && find == 0) {
+           |
+           |    if (calc.equals("or") && !or.equals("()") && find == 0) {
+           |      find = find + 1;
+           |      wheres = " where " + or;
+           |    } else if (calc.equals("or") && !or.equals("()") && find != 0) {
+           |      wheres = wheres + or;
+           |    } else if (fields.contains(k1) && find == 0) {
            |      find = find + 1;
            |      wheres = " where " + k1 + " " + calc + " " + v1;
            |    } else if (fields.contains(k1) && find != 0) {
