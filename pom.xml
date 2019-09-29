@@ -11,7 +11,7 @@
     </parent>
     <groupId>cn.anayoo</groupId>
     <artifactId>sweetpotato</artifactId>
-    <version>1.4</version>
+    <version>1.5</version>
     <name>SweetPotato</name>
     <description>A database restful API server</description>
 

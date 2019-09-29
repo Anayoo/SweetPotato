@@ -114,249 +114,27 @@ class RestCreater(xml: XmlLoader) {
            |  int pageSize = ${table.getPageSize};
            |  boolean count = false;
            |  String wheres = "";
-           |  int find = 0;
-           |  java.util.Iterator/*<String>*/ keys = $$2.getQueryParameters().keySet().iterator();
+           |  java.util.List/*<cn.anayoo.sweetpotato.model.Query>*/ querys = cn.anayoo.sweetpotato.util.QueryUtil.formatQuery($$2.getQueryParameters(), fields);
            |  java.util.List/*<String>*/ args = new java.util.ArrayList();
-           |  while (keys.hasNext()) {
-           |    String k = keys.next();
-           |    java.util.List/*<String>*/ vs = $$2.getQueryParameters().get(k);
-           |    String v = vs.get(0);
-           |    String k1 = "";
-           |    String v1 = "";
-           |    String calc = "";
-           |    String or = "";
-           |    if (((String) k).indexOf('|') != -1 || ((String) v).indexOf('|') != -1) {
-           |      calc = "or";
-           |      String all = "";
-           |      if (((String) v).equals("")) {
-           |        all = (String) k;
-           |      } else {
-           |        all = (String) k + "=" + (String) v;
-           |      }
-           |      while(all.length() != 0) {
-           |        int i = all.indexOf("|");
-           |        String v5 = "";
-           |        if (i != -1) {
-           |          v5 = all.substring(0, i);
-           |          all = all.substring(i + 1);
-           |        } else {
-           |          v5 = all;
-           |          all = "";
-           |        }
-           |        if (!v5.equals("")) {
-           |          if (v5.indexOf("<=") != -1) {
-           |            int i1 = v5.indexOf("<=");
-           |            if (fields.contains(v5.substring(0, i1))) {
-           |              if (!or.equals("")) {
-           |                or = or + " or ";
-           |              }
-           |              or = or + v5.substring(0, i1) + " <= ?";
-           |              args.add(v5.substring(i1 + 1));
-           |            }
-           |          } else if (v5.indexOf(">=") != -1) {
-           |            int i1 = v5.indexOf(">=");
-           |            if (fields.contains(v5.substring(0, i1))) {
-           |              if (!or.equals("")) {
-           |                or = or + " or ";
-           |              }
-           |              or = or + v5.substring(0, i1) + " >= ?";
-           |              args.add(v5.substring(i1 + 1));
-           |            }
-           |          } else if (v5.indexOf("<") != -1) {
-           |            int i1 = v5.indexOf("<");
-           |            if (fields.contains(v5.substring(0, i1))) {
-           |              if (!or.equals("")) {
-           |                or = or + " or ";
-           |              }
-           |              or = or + v5.substring(0, i1) + " < ?";
-           |              args.add(v5.substring(i1 + 1));
-           |            }
-           |          } else if (v5.indexOf(">") != -1) {
-           |            int i1 = v5.indexOf(">");
-           |            if (fields.contains(v5.substring(0, i1))) {
-           |              if (!or.equals("")) {
-           |                or = or + " or ";
-           |              }
-           |              or = or + v5.substring(0, i1) + " > ?";
-           |              args.add(v5.substring(i1 + 1));
-           |            }
-           |          } else if (v5.indexOf(">=") != -1) {
-           |            int i1 = v5.indexOf(">=");
-           |            if (fields.contains(v5.substring(0, i1))) {
-           |              if (!or.equals("")) {
-           |                or = or + " or ";
-           |              }
-           |              or = or + v5.substring(0, i1) + " >= ?";
-           |              args.add(v5.substring(i1 + 1));
-           |            }
-           |          } else if (v5.indexOf("!=") != -1) {
-           |            int i1 = v5.indexOf("!=");
-           |            if (fields.contains(v5.substring(0, i1))) {
-           |              if (!or.equals("")) {
-           |                or = or + " or ";
-           |              }
-           |              String v6 = v5.substring(i1 + 1);
-           |              if (v6.indexOf(',') != -1) {
-           |                or = or + v5.substring(0, i1) + " not in (";
-           |                String [] aarg = v6.split(",");
-           |                for (int i = 0; i < aarg.length; i ++) {
-           |                  or = or + "?";
-           |                  if (i != aarg.length - 1) {
-           |                    or = or + ", ";
-           |                  }
-           |                  args.add(aarg[i]);
-           |                }
-           |                or = or + ")";
-           |              } else if (v6.contains("%")) {
-           |                or = or + v5.substring(0, i1) + " not like ?";
-           |                args.add(v5.substring(i1 + 1));
-           |              } else {
-           |                or = or + v5.substring(0, i1) + " != ?";
-           |                args.add(v5.substring(i1 + 1));
-           |              }
-           |            }
-           |          } else if (v5.indexOf("=") != -1) {
-           |            int i1 = v5.indexOf("=");
-           |            if (fields.contains(v5.substring(0, i1))) {
-           |              if (!or.equals("")) {
-           |                or = or + " or ";
-           |              }
-           |              String v6 = v5.substring(i1 + 1);
-           |              if (v6.indexOf(',') != -1) {
-           |                or = or + v5.substring(0, i1) + " in (";
-           |                String [] aarg = v6.split(",");
-           |                for (int i = 0; i < aarg.length; i ++) {
-           |                  or = or + "?";
-           |                  if (i != aarg.length - 1) {
-           |                    or = or + ", ";
-           |                  }
-           |                  args.add(aarg[i]);
-           |                }
-           |                or = or + ")";
-           |              } else if (v6.contains("%")) {
-           |                or = or + v5.substring(0, i1) + " like ?";
-           |                args.add(v5.substring(i1 + 1));
-           |              } else {
-           |                or = or + v5.substring(0, i1) + " = ?";
-           |                args.add(v5.substring(i1 + 1));
-           |              }
-           |            }
-           |          }
-           |        }
-           |      }
-           |      or = "(" + or + ")";
-           |    } else if (((String)v).equals("") && (((String)k).indexOf('<') != -1 || ((String)k).indexOf('>') != -1)) {
-           |      calc = ((String)k).indexOf('<') != -1 ? "<" : ">";
-           |      int index = ((String)k).indexOf('<') != -1 ? ((String)k).indexOf('<') : ((String)k).indexOf('>');
-           |      k1 = ((String)k).substring(0, index);
-           |      if (index != (((String)k).length() - 1) && !k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
-           |        args.add(((String)k).substring(index + 1));
-           |        v1 = "?";
-           |      } else {
-           |        v1 = ((String)k).substring(index + 1);
-           |      }
-           |    } else if (((String)v).indexOf(',') != -1) {
-           |      k1 = ((String)k);
-           |      boolean not = false;
-           |      if (((String)k).substring(((String)k).length() - 1).equals("!")) {
-           |        not = true;
-           |        k1 = k1.substring(0, k1.length() - 1);
-           |      }
-           |      if (not) {
-           |        calc = "not in";
-           |      } else {
-           |        calc = "in";
-           |      }
-           |      String [] varg = ((String)v).split(",");
-           |      v1 += "(";
-           |      for (int i = 0; i < varg.length; i ++) {
-           |        if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
-           |          args.add(varg[i]);
-           |          v1 += "?";
-           |          if (i != varg.length - 1) v1 += ", ";
-           |        } else {
-           |          v1 += varg[i];
-           |          if (i != varg.length - 1) v1 += ", ";
-           |        }
-           |      }
-           |      v1 += ")";
-           |    } else if (!((String)v).equals("") && (((String)k).substring(((String)k).length() - 1).equals("<") || ((String)k).substring(((String)k).length() - 1).equals(">"))) {
-           |      k1 = ((String)k).substring(0, ((String)k).length() - 1);
-           |      calc = ((String)k).substring(((String)k).length() - 1).equals("<") ? "<=" : ((String)k).substring(((String)k).length() - 1).equals(">") ? ">=" : "!=";
-           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
-           |        args.add((String)v);
-           |        v1 = "?";
-           |      } else v1 = ((String)v);
-           |    } else if (((String)v).contains("%")) {
-           |      k1 = ((String)k);
-           |      boolean not = false;
-           |      if (((String)k).substring(((String)k).length() - 1).equals("!")) {
-           |        not = true;
-           |        k1 = k1.substring(0, k1.length() - 1);
-           |      }
-           |      if (not) {
-           |        calc = "not like";
-           |      } else {
-           |        calc = "like";
-           |      }
-           |      if (!k1.equals("count") && !k1.equals("order") && !k1.equals("orderType")) {
-           |        args.add((String)v);
-           |        v1 = "?";
-           |      } else v1 = ((String)v);
+           |  for (int i = 0; i < querys.size(); i ++) {
+           |    if (i == 0) {
+           |      wheres = wheres + " where";
+           |    }
+           |    cn.anayoo.sweetpotato.model.Query query = (cn.anayoo.sweetpotato.model.Query) querys.get(i);
+           |    if (query.getConnecter().equals("or") && i == 0) {
+           |      wheres = wheres + " (" + query.getQuery();
+           |    } else if (query.getConnecter().equals("or") && ((cn.anayoo.sweetpotato.model.Query) querys.get(i - 1)).getConnecter().equals("and")) {
+           |      wheres = wheres + " " + ((cn.anayoo.sweetpotato.model.Query) querys.get(i - 1)).getConnecter() + " (" + query.getQuery();
+           |    } else if (query.getConnecter().equals("and") && ((cn.anayoo.sweetpotato.model.Query) querys.get(i - 1)).getConnecter().equals("or")) {
+           |      wheres = wheres + " " + ((cn.anayoo.sweetpotato.model.Query) querys.get(i - 1)).getConnecter() + " " + query.getQuery() + ")";
            |    } else {
-           |      k1 = ((String)k);
-           |      boolean not = false;
-           |      if (((String)k).substring(((String)k).length() - 1).equals("!")) {
-           |        not = true;
-           |        k1 = k1.substring(0, k1.length() - 1);
-           |      }
-           |      if (not) {
-           |        calc = "!=";
-           |      } else {
-           |        calc = "=";
-           |      }
-           |      if (!((String)v).equals("") && !k1.equals("count") && !k1.equals("order") && !k1.equals("orderType") && !k1.equals("page") && !k1.equals("pageSize")) {
-           |        args.add((String)v);
-           |        v1 = "?";
-           |      } else v1 = ((String)v);
+           |      wheres = wheres + " " + ((cn.anayoo.sweetpotato.model.Query) querys.get(i - 1)).getConnecter() + " " + query.getQuery();
            |    }
-           |    if (v1.equals("") && (calc.equals("=") || calc.equals("<=") || calc.equals(">=") || calc.equals("<") || calc.equals(">") || calc.equals("!=")))
-           |      continue;
-           |    if (k1.equals("count") && v1.equals("true")) count = true;
-           |    if (k1.equals("order") && fields.contains(v1)) order = v1 + " {}";
-           |    if (k1.equals("order") && v1.indexOf(",") != -1) {
-           |      v1 = v1.substring(1, v1.length() - 1);
-           |      String [] vorders = v1.split(", ");
-           |      order = "";
-           |      for (int j = 0; j < vorders.length; j ++) {
-           |        if (fields.contains(vorders[j])) {
-           |          order += vorders[j] + " {}, ";
-           |        }
-           |      }
-           |      order = order.substring(0, order.length() - 2);
-           |    }
-           |    if (k1.equals("orderType") && v1.equals("desc")) orderType = v1;
-           |    try {
-           |      if (k1.equals("page")) page = Integer.parseInt(v1);
-           |    } catch (Exception e) {
-           |    }
-           |    try {
-           |      if (k1.equals("pageSize")) pageSize = Integer.parseInt(v1);
-           |    } catch (Exception e) {
-           |    }
-           |
-           |    if (calc.equals("or") && !or.equals("()") && find == 0) {
-           |      find = find + 1;
-           |      wheres = " where " + or;
-           |    } else if (calc.equals("or") && !or.equals("()") && find != 0) {
-           |      wheres = wheres + or;
-           |    } else if (fields.contains(k1) && find == 0) {
-           |      find = find + 1;
-           |      wheres = " where " + k1 + " " + calc + " " + v1;
-           |    } else if (fields.contains(k1) && find != 0) {
-           |      wheres = wheres + " and " + k1 + " " + calc + " " + v1;
+           |    for (int j = 0; j < query.getValues().size(); j ++) {
+           |      args.add(query.getValues().get(j));
            |    }
            |  }
+           |
            |  cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |  java.sql.Connection conn = pool.getConn("${table.getDatasource}");
            |  java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
