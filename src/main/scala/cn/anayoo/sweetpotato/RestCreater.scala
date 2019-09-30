@@ -131,7 +131,7 @@ class RestCreater(xml: XmlLoader) {
            |    if (query.getConnecter().equals("or") && i == 0) {
            |      wheres = wheres + " (" + query.getQuery();
            |    } else if (query.getConnecter().equals("and") && i == 0) {
-           |      wheres = wheres + query.getQuery();
+           |      wheres = wheres + " " + query.getQuery();
            |    } else if (query.getConnecter().equals("or") && ((cn.anayoo.sweetpotato.model.Query) querys.get(i - 1)).getConnecter().equals("and")) {
            |      wheres = wheres + " " + ((cn.anayoo.sweetpotato.model.Query) querys.get(i - 1)).getConnecter() + " (" + query.getQuery();
            |    } else if (query.getConnecter().equals("and") && ((cn.anayoo.sweetpotato.model.Query) querys.get(i - 1)).getConnecter().equals("or")) {
