@@ -114,7 +114,14 @@ class RestCreater(xml: XmlLoader) {
            |  int pageSize = ${table.getPageSize};
            |  boolean count = false;
            |  String wheres = "";
-           |  java.util.List/*<cn.anayoo.sweetpotato.model.Query>*/ querys = cn.anayoo.sweetpotato.util.QueryUtil.formatQuery($$2.getQueryParameters(), fields);
+           |  cn.anayoo.sweetpotato.model.QueryForm queryForm = cn.anayoo.sweetpotato.util.QueryUtil.formatQuery($$2.getQueryParameters(), fields);
+           |  if (!queryForm.getPage().equals("")) page = Integer.parseInt(queryForm.getPage());
+           |  if (!queryForm.getPageSize().equals("")) pageSize = Integer.parseInt(queryForm.getPageSize());
+           |  if (!queryForm.getOrder().equals("")) order = queryForm.getOrder() + " {}";
+           |  if (!queryForm.getOrderType().equals("")) orderType = queryForm.getOrderType();
+           |  if (!queryForm.getCount().equals("") && queryForm.getCount().equals("true")) count = true;
+           |
+           |  java.util.List/*<cn.anayoo.sweetpotato.model.Query>*/ querys = queryForm.getQueryList();
            |  java.util.List/*<String>*/ args = new java.util.ArrayList();
            |  for (int i = 0; i < querys.size(); i ++) {
            |    if (i == 0) {

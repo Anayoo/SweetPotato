@@ -1,7 +1,9 @@
 package cn.anayoo.sweetpotato.util;
 
 import cn.anayoo.sweetpotato.model.Query;
+import cn.anayoo.sweetpotato.model.QueryForm;
 
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MultivaluedMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +16,9 @@ public class QueryUtil {
      * @param filter    过滤项
      * @return
      */
-    public static List<Query> formatQuery(MultivaluedMap<String, String> map, List<String> filter) {
+    public static QueryForm formatQuery(MultivaluedMap<String, String> map, List<String> filter) {
         var res = new ArrayList<Query>();
+        var queryForm = new QueryForm();
         map.keySet().forEach(key -> {
             for (String value : map.get(key)) {
                 // 排除掉 key 或 key= 这种无value形式的查询
@@ -28,7 +31,6 @@ public class QueryUtil {
                 if (query.contains("|")) {
                     var arg = query.split("[|]");
                     for (int i = 0; i < arg.length; i ++) {
-                        System.out.println("arg[i]:" + arg[i]);
                         // 排除掉 key 或 key= 这种无value形式的查询
                         if (arg[i].indexOf('=') == -1 && arg[i].indexOf('<') == -1 && arg[i].indexOf('>') == -1) continue;
                         // 判断query是否符合表的字段过滤条件
@@ -37,7 +39,6 @@ public class QueryUtil {
                         if ("".equals(k) && arg[i].indexOf('>') != -1) k = arg[i].substring(0, arg[i].indexOf('>'));
                         if ("".equals(k) && arg[i].indexOf('!') != -1) k = arg[i].substring(0, arg[i].indexOf('!'));
                         if ("".equals(k) && arg[i].indexOf('=') != -1) k = arg[i].substring(0, arg[i].indexOf('='));
-                        System.out.println("k:" + k);
                         if (!filter.contains(k)) continue;
                         // 如果第二个字符为=，则截2个字符当作计算符，否则截1个字符
                         var calc = arg[i].substring(k.length() + 1, k.length() + 2).equals("=") ? arg[i].substring(k.length(), k.length() + 2) : arg[i].substring(k.length(), k.length() + 1);
@@ -88,6 +89,12 @@ public class QueryUtil {
                     if ("".equals(k) && query.indexOf('>') != -1) k = query.substring(0, query.indexOf('>'));
                     if ("".equals(k) && query.indexOf('!') != -1) k = query.substring(0, query.indexOf('!'));
                     if ("".equals(k) && query.indexOf('=') != -1) k = query.substring(0, query.indexOf('='));
+                    if (query.startsWith("page=") && canParseInt(query.substring(5))) queryForm.setPage(query.substring(5));
+                    if (query.startsWith("pageSize=") && canParseInt(query.substring(9))) queryForm.setPageSize(query.substring(9));
+                    if (query.startsWith("order=") && filter.contains(query.substring(6))) queryForm.setOrder(query.substring(6));
+                    if (query.startsWith("orderType=") && (query.substring(10).equals("asc") || query.substring(10).equals("desc"))) queryForm.setOrderType(query.substring(10));
+                    if (query.startsWith("count=") && (query.substring(6).equals("true") || query.substring(6).equals("false"))) queryForm.setCount(query.substring(6));
+
                     if (!filter.contains(k)) continue;
                     // 如果第二个字符为=，则截2个字符当作计算符，否则截1个字符
                     var calc = query.substring(k.length() + 1, k.length() + 2).equals("=") ? query.substring(k.length(), k.length() + 2) : query.substring(k.length(), k.length() + 1);
@@ -124,7 +131,17 @@ public class QueryUtil {
                 }
             }
         });
-        return res;
+        queryForm.setQueryList(res);
+        return queryForm;
+    }
+
+    private static boolean canParseInt(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
 }
