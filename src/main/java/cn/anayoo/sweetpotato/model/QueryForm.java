@@ -6,8 +6,8 @@ public class QueryForm {
 
     private String pageSize = "";
     private String page = "";
-    private String orderType = "";
-    private String order = "";
+    private String[] orderType = {};
+    private String[] order = {};
     private String count = "";
 
     private List<Query> queryList;
@@ -15,7 +15,7 @@ public class QueryForm {
     public QueryForm() {
     }
 
-    public QueryForm(String pageSize, String page, String orderType, String order, String count, List<Query> queryList) {
+    public QueryForm(String pageSize, String page, String[] orderType, String[] order, String count, List<Query> queryList) {
         this.pageSize = pageSize;
         this.page = page;
         this.orderType = orderType;
@@ -40,19 +40,19 @@ public class QueryForm {
         this.page = page;
     }
 
-    public String getOrderType() {
+    public String[] getOrderType() {
         return orderType;
     }
 
-    public void setOrderType(String orderType) {
+    public void setOrderType(String[] orderType) {
         this.orderType = orderType;
     }
 
-    public String getOrder() {
+    public String[] getOrder() {
         return order;
     }
 
-    public void setOrder(String order) {
+    public void setOrder(String[] order) {
         this.order = order;
     }
 

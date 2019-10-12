@@ -91,12 +91,29 @@ public class QueryUtil {
                     if ("".equals(k) && query.indexOf('=') != -1) k = query.substring(0, query.indexOf('='));
                     if (query.startsWith("page=") && canParseInt(query.substring(5))) queryForm.setPage(query.substring(5));
                     if (query.startsWith("pageSize=") && canParseInt(query.substring(9))) queryForm.setPageSize(query.substring(9));
-                    if (query.startsWith("order=") && filter.contains(query.substring(6))) queryForm.setOrder(query.substring(6));
-                    if (query.startsWith("orderType=") && (query.substring(10).equals("asc") || query.substring(10).equals("desc"))) queryForm.setOrderType(query.substring(10));
+                    if (query.startsWith("order=")) {
+                        var orders = query.substring(6).split(",");
+                        var newOrders = new ArrayList<String>();
+                        for (String ord : orders) {
+                            if (filter.contains(ord)) newOrders.add(ord);
+                        }
+                        var newOrdersArray = new String[newOrders.size()];
+                        newOrders.toArray(newOrdersArray);
+                        queryForm.setOrder(newOrdersArray);
+                    }
+                    if (query.startsWith("orderType=")) {
+                        var orderTypes = query.substring(10).split(",");
+                        var newOrderTypes = new String[orderTypes.length];
+                        for (int i = 0; i < orderTypes.length; i ++) {
+                            newOrderTypes[i] = orderTypes[i].trim().equals("desc") ? "desc" : "asc";
+                        }
+                        queryForm.setOrderType(newOrderTypes);
+                    }
                     if (query.startsWith("count=") && (query.substring(6).equals("true") || query.substring(6).equals("false"))) queryForm.setCount(query.substring(6));
 
                     if (!filter.contains(k)) continue;
                     // 如果第二个字符为=，则截2个字符当作计算符，否则截1个字符
+                    if (query.length() == k.length() + 1) continue;
                     var calc = query.substring(k.length() + 1, k.length() + 2).equals("=") ? query.substring(k.length(), k.length() + 2) : query.substring(k.length(), k.length() + 1);
                     var v = query.substring(k.length() + calc.length());
                     // 如果value中包含,，则认为列表查询

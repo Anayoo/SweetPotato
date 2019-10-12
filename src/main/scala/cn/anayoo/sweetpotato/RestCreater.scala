@@ -108,8 +108,9 @@ class RestCreater(xml: XmlLoader) {
         s"""{
            |  java.util.List/*<String>*/ fields = new java.util.ArrayList();
            |$getsFields
-           |  String order = "${table.getOrder} {}";
-           |  String orderType = "${table.getOrderType}";
+           |  String order = "${table.getOrder} ${table.getOrderType}";
+           |  String resOrder = "${table.getOrder}";
+           |  String resOrderType = "${table.getOrderType}";
            |  int page = 1;
            |  int pageSize = ${table.getPageSize};
            |  boolean count = false;
@@ -117,8 +118,32 @@ class RestCreater(xml: XmlLoader) {
            |  cn.anayoo.sweetpotato.model.QueryForm queryForm = cn.anayoo.sweetpotato.util.QueryUtil.formatQuery($$2.getQueryParameters(), fields);
            |  if (!queryForm.getPage().equals("")) page = Integer.parseInt(queryForm.getPage());
            |  if (!queryForm.getPageSize().equals("")) pageSize = Integer.parseInt(queryForm.getPageSize());
-           |  if (!queryForm.getOrder().equals("")) order = queryForm.getOrder() + " {}";
-           |  if (!queryForm.getOrderType().equals("")) orderType = queryForm.getOrderType();
+           |  if (queryForm.getOrder().length != 0) {
+           |    order = "";
+           |    resOrder = "";
+           |    resOrderType = "";
+           |    String[] orders = queryForm.getOrder();
+           |    String[] orderTypes = queryForm.getOrderType();
+           |    for (int i = 0; i < orders.length; i ++) {
+           |      order = order + orders[i] + " ";
+           |      resOrder = resOrder + orders[i];
+           |      if (orderTypes.length >= i + 1) {
+           |        order = order + orderTypes[i];
+           |        resOrderType = resOrderType + orderTypes[i];
+           |      } else {
+           |        order = order + "asc";
+           |        resOrderType = resOrderType + "asc";
+           |      }
+           |      if (i != orders.length - 1) {
+           |        order = order + ", ";
+           |        resOrder = resOrder + ", ";
+           |        resOrderType = resOrderType + ", ";
+           |      }
+           |    }
+           |  } else if (queryForm.getOrderType().length != 0) {
+           |    order = order.substring(0, order.indexOf(" ") + 1) + queryForm.getOrderType()[0];
+           |    resOrderType = queryForm.getOrderType()[0];
+           |  }
            |  if (!queryForm.getCount().equals("") && queryForm.getCount().equals("true")) count = true;
            |
            |  java.util.List/*<cn.anayoo.sweetpotato.model.Query>*/ querys = queryForm.getQueryList();
@@ -149,8 +174,8 @@ class RestCreater(xml: XmlLoader) {
            |  java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
            |  int limitStart = pageSize * (page - 1);
            |  String prepareSQL = "";
-           |  if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order.replaceAll("\\\\{}", orderType) + " limit " + limitStart + ", " + pageSize + ";";
-           |  if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order.replaceAll("\\\\{}", orderType) + " offset " + limitStart + " rows fetch next " + pageSize + " rows only";
+           |  if (dbType.equals("mysql")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order + " limit " + limitStart + ", " + pageSize + ";";
+           |  if (dbType.equals("oracle")) prepareSQL = "select $args from ${table.getValue}" + wheres + " order by " + order + " offset " + limitStart + " rows fetch next " + pageSize + " rows only";
            |  java.sql.PreparedStatement stmt = conn.prepareStatement(prepareSQL);
            |  for (int i = 0; i < args.size(); i ++) {
            |    stmt.setString(i + 1, (String) args.get(i));
@@ -167,8 +192,8 @@ class RestCreater(xml: XmlLoader) {
            |  cn.anayoo.sweetpotato.model.Setting setting = new cn.anayoo.sweetpotato.model.Setting();
            |  setting.setPageSize(pageSize);
            |  setting.setPage(page);
-           |  setting.setOrder(order.replaceAll("[\\\\{}| ]", ""));
-           |  setting.setOrderType(orderType);
+           |  setting.setOrder(resOrder);
+           |  setting.setOrderType(resOrderType);
            |  if (count) {
            |    if (dbType.equals("mysql")) prepareSQL = "select count(1) from ${table.getValue}" + wheres + ";";
            |    if (dbType.equals("oracle")) prepareSQL = "select count(1) from ${table.getValue}" + wheres;
