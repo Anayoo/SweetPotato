@@ -86,7 +86,7 @@ public class XmlLoader {
                 // 默认值true
                 var an = field.attributeValue("allowNone") == null ? dbField.isAllowNone() : field.attributeValue("allowNone").toLowerCase().equals("true");
                 var ar = field.attributeValue("allowRepeat") == null ? dbField.isAllowRepeat() : field.attributeValue("allowRepeat").toLowerCase().equals("true");
-                fields.add(new Field(v, t, r, pk, ar, an));
+                fields.add(new Field(fields.size(), v, t, r, pk, ar, an));
                 dbFields.remove(v);
             });
             if (autoBuild) {
@@ -96,6 +96,7 @@ public class XmlLoader {
                 key = key.equals("") ? fields.get(0).getValue() : key;
                 order = order.equals("") ? fields.get(0).getValue() : order;
             }
+            Collections.sort(fields);
             this.tables.put(name, new Table(name, datasource, value, url, gets, key, pageSize, order, orderType, fields));
         });
         return this;
@@ -135,8 +136,11 @@ public class XmlLoader {
                         var t = rs.getString("Type");
                         var allowNone = rs.getString("Null").equals("YES");
                         var pk = rs.getString("Key").equals("PRI");
-                        t = (t.equals("int") || t.equals("bigint") || t.equals("decimal") || t.equals("double") || t.equals("integer") || t.equals("mediumint") || t.equals("multipoint") || t.equals("smallint") || t.equals("tinyint")) ? "number" : "string";
-                        fields.put(v, new Field(v, t, "", pk, true, allowNone));
+                        var t2 = "";
+                        t2 = (t.startsWith("int") || t.startsWith("bigint") || t.startsWith("decimal") || t.startsWith("integer") || t.startsWith("mediumint") || t.startsWith("multipoint") || t.startsWith("smallint") || t.startsWith("tinyint")) ? "number" : "string";
+                        t2 = (t.startsWith("float") || t.startsWith("double")) ? "double" : t2;
+                        t2 = (t.startsWith("bit") || t.startsWith("binary") || t.startsWith("varbinary") || t.startsWith("tinyblob") || t.startsWith("blob") || t.startsWith("mediumblob") || t.startsWith("longblob")) ? "binary" : t2;
+                        fields.put(v, new Field(fields.size(), v, t2, "", pk, true, allowNone));
                     }
                     break;
                 case "oracle" :
@@ -151,8 +155,8 @@ public class XmlLoader {
                         var rs1 = stmt1.executeQuery(sql1);
                         var pk = rs1.next();
                         rs1.close();
-                        t = (t.equals("NUMBER") || t.equals("INTEGER") || t.equals("INT")) ? "number" : "string";
-                        fields.put(v, new Field(v, t, "", pk, true, allowNone));
+                        t = (t.startsWith("NUMBER") || t.startsWith("INTEGER") || t.startsWith("INT")) ? "number" : "string";
+                        fields.put(v, new Field(fields.size(), v, t, "", pk, true, allowNone));
                     }
                     break;
             }

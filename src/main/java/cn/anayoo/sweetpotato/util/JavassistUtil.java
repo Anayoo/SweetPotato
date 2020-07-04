@@ -77,8 +77,10 @@ public class JavassistUtil {
     public static CtClass getCtClass(ClassPool classPool, String type) throws NotFoundException {
         var ctClass = (CtClass) null;
         switch (type) {
-            case "number" : ctClass = classPool.get("java.lang.Long"); break;
+            case "double" : ctClass = classPool.get("java.lang.Double"); break;
+            case "number" : ctClass = classPool.get("java.math.BigDecimal"); break;
             case "string" : ctClass = classPool.get("java.lang.String"); break;
+            case "binary" : ctClass = classPool.get("java.lang.String"); break;
             default : ctClass = classPool.get(type); break;
         }
         return ctClass;

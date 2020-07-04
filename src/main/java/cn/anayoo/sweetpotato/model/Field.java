@@ -2,6 +2,7 @@ package cn.anayoo.sweetpotato.model;
 
 public class Field implements Comparable<Field> {
 
+    private int index;
     private String value;
     private String type;
     private String regex;
@@ -15,14 +16,16 @@ public class Field implements Comparable<Field> {
     public Field() {
     }
 
-    public Field(String value, String type) {
+    public Field(int index, String value, String type) {
+        this.index = index;
         this.value = value;
         this.type = type;
         this.setterName = "set" + value.substring(0, 1).toUpperCase() + value.substring(1);
         this.getterName = "get" + value.substring(0, 1).toUpperCase() + value.substring(1);
     }
 
-    public Field(String value, String type, String regex) {
+    public Field(int index, String value, String type, String regex) {
+        this.index = index;
         this.value = value;
         this.type = type;
         this.regex = regex;
@@ -30,7 +33,8 @@ public class Field implements Comparable<Field> {
         this.getterName = "get" + value.substring(0, 1).toUpperCase() + value.substring(1);
     }
 
-    public Field(String value, String type, String regex, boolean isPrimaryKey, boolean allowRepeat, boolean allowNone) {
+    public Field(int index, String value, String type, String regex, boolean isPrimaryKey, boolean allowRepeat, boolean allowNone) {
+        this.index = index;
         this.value = value;
         this.type = type;
         this.regex = regex;
@@ -39,6 +43,14 @@ public class Field implements Comparable<Field> {
         this.allowNone = allowNone;
         this.setterName = "set" + value.substring(0, 1).toUpperCase() + value.substring(1);
         this.getterName = "get" + value.substring(0, 1).toUpperCase() + value.substring(1);
+    }
+
+    public int getIndex() {
+        return index;
+    }
+
+    public void setIndex(int index) {
+        this.index = index;
     }
 
     public String getValue() {
@@ -94,6 +106,7 @@ public class Field implements Comparable<Field> {
     @Override
     public String toString() {
         return "{" +
+                "\"index\":" + this.index + ", " +
                 "\"value\":\"" + this.value + "\", " +
                 "\"type\":\"" + this.type + "\", " +
                 "\"regex\":\"" + this.regex + "\", " +
@@ -105,8 +118,7 @@ public class Field implements Comparable<Field> {
 
     @Override
     public int compareTo(Field field) {
-        if (this.isPrimaryKey) return -1;
-        else return 1;
+        return this.index - field.getIndex();
     }
 
     public boolean isPrimaryKey() {

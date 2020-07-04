@@ -97,10 +97,10 @@ class RestCreater(xml: XmlLoader) {
            |      $rs
            |   } else arg = null;
            |   conn.close();
-           |   return arg;
+           |   return javax.ws.rs.core.Response.status(200).entity(arg).build();
            |}
          """.stripMargin
-      createGetterMethod(xml, classPool.get(model), table.getUrl, parameters, getterService, body, table)
+      createGetterMethod(xml, classPool.get("javax.ws.rs.core.Response"), table.getUrl, parameters, getterService, body, table)
 
       // GETS
       val getsFields = table.getFields.asScala.map("  fields.add(\"" + _.getValue + "\");").mkString("\n")
@@ -208,7 +208,7 @@ class RestCreater(xml: XmlLoader) {
            |  }
            |  conn.close();
            |  modelPage.setSetting(setting);
-           |  return modelPage;
+           |  return javax.ws.rs.core.Response.status(200).entity(modelPage).build();
            |}
          """.stripMargin
 //        s"""{
@@ -256,7 +256,7 @@ class RestCreater(xml: XmlLoader) {
 //           |   return page;
 //           |}
 //         """.stripMargin
-      createGetsMethod(xml, classPool.get(modelPage), table.getGets, getterService, body2, table)
+      createGetsMethod(xml, classPool.get("javax.ws.rs.core.Response"), table.getGets, getterService, body2, table)
     })
     writeClassFile(getterService, "GetterService.class")
     this
@@ -307,22 +307,24 @@ class RestCreater(xml: XmlLoader) {
       Array[Array[MemberValue]](Array(new StringMemberValue("/basic", putterService.getClassFile.getConstPool)), Array(new StringMemberValue("", putterService.getClassFile.getConstPool))))
     xml.getTables.values().stream().forEach(table => {
       val model = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase() + table.getName.substring(1)
-      val fieldsWithoutKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filterNot(_._2.getValue.equals(table.getKey))
-      val fieldsWithKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filter(_._2.getValue.equals(table.getKey))
-      val fields = fieldsWithoutKey :+ (fieldsWithoutKey.size, fieldsWithKey.apply(0)._2)
+      val fieldsWithoutKey = table.getFields.asScala.filterNot(_.isPrimaryKey).toList
+      val fieldsWithoutKeySeq = for (i <- fieldsWithoutKey.indices) yield i + 1 -> fieldsWithoutKey.lift(i).get
+      val fieldsWithKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filter(_._2.isPrimaryKey)
+      val fields = fieldsWithoutKeySeq :++ fieldsWithKey.map(f => (fieldsWithoutKeySeq.size + f._1, f._2))
       val fields2 = for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)
       val args = fields.map(_._2.getValue).mkString(", ")
       val values = fields.map(_ => "?").mkString(", ")
-      val verify = spellVerify(fieldsWithoutKey, table.getFields.size() + 1)
+      val nullif = spellNullIf(fieldsWithKey)
+      val verify = spellVerify(fieldsWithoutKeySeq, table.getFields.size() + 1)
       val wheres = spellWhere(fields2)
       val whereWithKey = spellWhere2(fieldsWithKey)
-      val whereWithoutKey = spellWhere2(fieldsWithoutKey)
+      val setWithoutKey = spellSet(fieldsWithoutKeySeq)
       val stmtWithKey = spellStmt3(fieldsWithKey)
-      val stmt = spellStmt2(fieldsWithoutKey, table.getFields.size() + 1) + spellStmt3(Seq.empty :+ (fieldsWithoutKey.size, fieldsWithKey.apply(0)._2))
-      val stmt2 = spellStmt(fieldsWithoutKey)
+      val stmt = spellStmt2(fieldsWithoutKeySeq, table.getFields.size() + 1) + spellStmt3(Seq.empty :++ fieldsWithKey.map(f => {(fieldsWithoutKey.size + f._1, f._2)}))
+      val stmt2 = spellStmt(fieldsWithoutKeySeq)
       val body =
         s"""{
-           |   if ($$1 == null) return javax.ws.rs.core.Response.status(400).entity("\\"未指明主键\\"").build();
+           |   if ($nullif) return javax.ws.rs.core.Response.status(400).entity("\\"未指明主键\\"").build();
            |   $verify
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
@@ -341,8 +343,8 @@ class RestCreater(xml: XmlLoader) {
            |      java.lang.StringBuilder where = new java.lang.StringBuilder();
            |      boolean isNull = true;
            |      $wheres
-           |      if (dbType.equals("mysql")) if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where " + where + ";"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
-           |      if (dbType.equals("oracle")) if (number > 0) prepareSQL = "update ${table.getValue} set $whereWithoutKey where " + where; else prepareSQL = "insert into ${table.getValue} ($args) values ($values)";
+           |      if (dbType.equals("mysql")) if (number > 0) prepareSQL = "update ${table.getValue} set $setWithoutKey where " + where + ";"; else prepareSQL = "insert into ${table.getValue} ($args) values ($values);";
+           |      if (dbType.equals("oracle")) if (number > 0) prepareSQL = "update ${table.getValue} set $setWithoutKey where " + where; else prepareSQL = "insert into ${table.getValue} ($args) values ($values)";
            |      stmt = conn.prepareStatement(prepareSQL);
            |      $stmt
            |      int i = ${fields2.size + 1};
@@ -352,6 +354,7 @@ class RestCreater(xml: XmlLoader) {
            |      number = stmt.executeUpdate();
            |      conn.commit();
            |   } catch (Exception e) {
+           |      e.printStackTrace();
            |      conn.rollback();
            |      number = 0;
            |   }
@@ -375,12 +378,13 @@ class RestCreater(xml: XmlLoader) {
       Array[Array[MemberValue]](Array(new StringMemberValue("/basic", deleterService.getClassFile.getConstPool)), Array(new StringMemberValue("", deleterService.getClassFile.getConstPool))))
     xml.getTables.values().stream().forEach(table => {
       val model = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase() + table.getName.substring(1)
-      val fieldsWithKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filter(_._2.getValue.equals(table.getKey))
+      val fieldsWithKey = (for (i <- 0 until table.getFields.size()) yield i -> table.getFields.get(i)).filter(_._2.isPrimaryKey)
+      val nullif = spellNullIf(fieldsWithKey)
       val whereWithKey = spellWhere2(fieldsWithKey)
       val stmtWithKey = spellStmt3(fieldsWithKey)
       val body =
         s"""{
-           |   if ($$1 == null) return javax.ws.rs.core.Response.status(400).entity("\\"未指明主键\\"").build();
+           |   if ($nullif) return javax.ws.rs.core.Response.status(400).entity("\\"未指明主键\\"").build();
            |   cn.anayoo.sweetpotato.db.DatabasePool pool = cn.anayoo.sweetpotato.db.DatabasePool.getInstance();
            |   java.sql.Connection conn = pool.getConn("${table.getDatasource}");
            |   java.lang.String dbType = pool.getDatasourceType("${table.getDatasource}");
@@ -401,16 +405,24 @@ class RestCreater(xml: XmlLoader) {
     this
   }
 
+  val spellNullIf: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
+    a.map(b => {
+      s"""$$${b._1 + 1} == null"""
+    }).mkString(" || ")
+  }
+
   val spellVerify: (Seq[(Int, Field)], Int) => String = (a:Seq[(Int, Field)], i: Int) => {
     a.map(b => {
       var verify = if (!b._2.isAllowNone)
         s"""if ($$$i.${b._2.getGetterName}() == null) return javax.ws.rs.core.Response.status(400).entity("\\"属性${b._2.getValue}不能为空\\"").build();
          """.stripMargin else ""
       b._2.getType match {
+        case "double" => verify += ""
         case "number" => verify += ""
         case "string" => verify +=
           s"""if ($$$i.${b._2.getGetterName}() != null && !java.util.regex.Pattern.compile("${b._2.getRegex.replaceAll("\\\\", "\\\\\\\\")}").matcher($$$i.${b._2.getGetterName}()).find()) return javax.ws.rs.core.Response.status(400).entity("\\"参数${b._2.getValue}校验错误\\"").build();
            """.stripMargin
+        case "binary" => verify += ""
       }
       verify
     }).mkString
@@ -419,6 +431,13 @@ class RestCreater(xml: XmlLoader) {
   val spellWhere: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
+        case "double" =>
+          s"""if ($$${b._1 + 1} != null) {
+             |   if (!isNull) where.append(" and ");
+             |   where.append("${b._2.getValue}=?");
+             |   isNull = false;
+             |}
+            """.stripMargin
         case "number" =>
           s"""if ($$${b._1 + 1} != null) {
              |   if (!isNull) where.append(" and ");
@@ -427,6 +446,13 @@ class RestCreater(xml: XmlLoader) {
              |}
             """.stripMargin
         case "string" =>
+          s"""if (!$$${b._1 + 1}.equals("")) {
+             |   if (!isNull) where.append(" and ");
+             |   where.append("${b._2.getValue}=?");
+             |   isNull = false;
+             |}
+            """.stripMargin
+        case "binary" =>
           s"""if (!$$${b._1 + 1}.equals("")) {
              |   if (!isNull) where.append(" and ");
              |   where.append("${b._2.getValue}=?");
@@ -439,21 +465,43 @@ class RestCreater(xml: XmlLoader) {
   val spellWhere2: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       s"""${b._2.getValue}=?"""
+    }).mkString(" and ")
+  }
+  val spellSet: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
+    a.map(b => {
+      s"""${b._2.getValue}=?"""
     }).mkString(", ")
   }
   val spellStmt: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
+    println(a)
     a.map(b => {
       b._2.getType match {
+        case "double" =>
+          s"""if ($$${b._2.getIndex + 1} != null) {
+             |  stmt.setDouble(i, $$${b._2.getIndex + 1}.doubleValue());
+             |  i ++;
+             |}
+             """.stripMargin
         case "number" =>
-          s"""if ($$${b._1 + 1} != null) {
-             |   stmt.setLong(i, $$${b._1 + 1}.longValue());
-             |   i ++;
+          s"""if ($$${b._2.getIndex + 1} != null) {
+             |  stmt.setBigDecimal(i, $$${b._2.getIndex + 1});
+             |  i ++;
              |}
              """.stripMargin
         case "string" =>
-          s"""if (!$$${b._1 + 1}.equals("")) {
-             |   stmt.setString(i, $$${b._1 + 1});
-             |   i ++;
+          s"""if (!$$${b._2.getIndex + 1}.equals("")) {
+             |  stmt.setString(i, $$${b._2.getIndex + 1});
+             |  i ++;
+             |}
+             """.stripMargin
+        case "binary" =>
+          s"""if (!$$${b._2.getIndex + 1}.equals("")) {
+             |  try {
+             |    stmt.setBytes(i, java.util.Base64.getDecoder().decode($$${b._2.getIndex + 1}));
+             |    i ++;
+             |  } catch (IllegalArgumentException e) {
+             |    return javax.ws.rs.core.Response.status(400).entity("\\"错误的二进制类型\\"").build();
+             |  }
              |}
              """.stripMargin
       }
@@ -462,11 +510,23 @@ class RestCreater(xml: XmlLoader) {
   val spellStmt2: (Seq[(Int, Field)], Int) => String = (a:Seq[(Int, Field)], i: Int) => {
     a.map(b => {
       b._2.getType match {
+        case "double" =>
+          s"""if ($$$i.${b._2.getGetterName}() == null) stmt.setNull(${b._1}, java.sql.Types.FLOAT); else stmt.setDouble(${b._1}, $$$i.${b._2.getGetterName}().doubleValue());
+           """.stripMargin
         case "number" =>
-          s"""if ($$$i.${b._2.getGetterName}() == null) stmt.setNull(${b._1}, java.sql.Types.INTEGER); else stmt.setLong(${b._1}, $$$i.${b._2.getGetterName}().longValue());
+          s"""if ($$$i.${b._2.getGetterName}() == null) stmt.setNull(${b._1}, java.sql.Types.TINYINT); else stmt.setBigDecimal(${b._1}, $$$i.${b._2.getGetterName}());
            """.stripMargin
         case "string" =>
           s"""if ($$$i.${b._2.getGetterName}() == null) stmt.setNull(${b._1}, java.sql.Types.VARCHAR); else stmt.setString(${b._1}, $$$i.${b._2.getGetterName}());
+           """.stripMargin
+        case "binary" =>
+          s"""if ($$$i.${b._2.getGetterName}() == null) stmt.setNull(${b._1}, java.sql.Types.BIT); else {
+             |  try {
+             |    stmt.setBytes(${b._1}, java.util.Base64.getDecoder().decode($$$i.${b._2.getGetterName}()));
+             |  } catch (IllegalArgumentException e) {
+             |    return javax.ws.rs.core.Response.status(400).entity("\\"错误的二进制类型\\"").build();
+             |  }
+             |}
            """.stripMargin
       }
     }).mkString
@@ -474,16 +534,27 @@ class RestCreater(xml: XmlLoader) {
   val spellStmt3: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
-        case "number" => s"""if ($$1 == null) stmt.setNull(${b._1 + 1}, java.sql.Types.INTEGER); else stmt.setLong(${b._1 + 1}, $$1.longValue());""".stripMargin
-        case "string" => s"""if ($$1 == null) stmt.setNull(${b._1 + 1}, java.sql.Types.VARCHAR); else stmt.setString(${b._1 + 1}, $$1);""".stripMargin
+        case "double" => s"""if ($$${b._2.getIndex + 1} == null) stmt.setNull(${b._1 + 1}, java.sql.Types.FLOAT); else stmt.setDouble(${b._1 + 1}, $$${b._2.getIndex + 1}.doubleValue());""".stripMargin
+        case "number" => s"""if ($$${b._2.getIndex + 1} == null) stmt.setNull(${b._1 + 1}, java.sql.Types.TINYINT); else stmt.setBigDecimal(${b._1 + 1}, $$${b._2.getIndex + 1});""".stripMargin
+        case "string" => s"""if ($$${b._2.getIndex + 1} == null) stmt.setNull(${b._1 + 1}, java.sql.Types.VARCHAR); else stmt.setString(${b._1 + 1}, $$${b._2.getIndex + 1});""".stripMargin
+        case "binary" =>
+          s"""if ($$${b._2.getIndex + 1} == null) stmt.setNull(${b._1 + 1}, java.sql.Types.BIT); else {
+             |  try {
+             |    stmt.setBytes(${b._1 + 1}, java.util.Base64.getDecoder().decode($$${b._2.getIndex + 1}));
+             |  } catch (IllegalArgumentException e) {
+             |    return javax.ws.rs.core.Response.status(400).entity("\\"错误的二进制类型\\"").build();
+             |  }
+             |}""".stripMargin
       }
-    }).mkString
+    }).mkString("\n")
   }
   val spellRs: Seq[(Int, Field)] => String = (a:Seq[(Int, Field)]) => {
     a.map(b => {
       b._2.getType match {
-        case "number" => s"""arg.${b._2.getSetterName}(Long.valueOf(rs.getLong("${b._2.getValue}")));"""
+        case "double" => s"""arg.${b._2.getSetterName}(new Double(rs.getDouble("${b._2.getValue}")));"""
+        case "number" => s"""arg.${b._2.getSetterName}(rs.getBigDecimal("${b._2.getValue}"));"""
         case "string" => s"""arg.${b._2.getSetterName}(rs.getString("${b._2.getValue}"));"""
+        case "binary" => s"""arg.${b._2.getSetterName}(java.util.Base64.getEncoder().encodeToString(rs.getBytes("${b._2.getValue}")));"""
       }
     }).mkString
   }
@@ -495,7 +566,6 @@ class RestCreater(xml: XmlLoader) {
     val m = new CtMethod(returnType, mname, parameters, declaring)
     m.setModifiers(Modifier.PUBLIC)
     // 方法内的处理逻辑
-    //System.out.println(body)
     m.setBody(body)
     declaring.addMethod(m)
     // 给参数增加注解 @QueryParam @DefaultValue    参考：https://www.cnblogs.com/coshaho/p/5105545.html
@@ -505,15 +575,17 @@ class RestCreater(xml: XmlLoader) {
     val sqlArrays = Array[String]("pageSize", "page", "order", "orderType", "count")
     val sqlDefaultArrays = Array[String]("" + table.getPageSize, "1", table.getOrder, table.getOrderType, "false")
     val pageFullName = xml.getModelPackage + "." + table.getName.substring(0, 1).toUpperCase + table.getName.substring(1) + "Page"
+    var uri = ""
     var i = 0
     while ( {
       i < parameters.length
     }) { // 根据 parameters 和 table.fields 的长度判断是否为SQL分页查询属性
       if (i < table.getFields.size) {
         val field = table.getFields.get(i)
-        if (!(returnType == classPool.get(pageFullName)) && field.getValue == table.getKey) { // @QueryParam
+        if (!(returnType == classPool.get(pageFullName)) && field.isPrimaryKey) { // @QueryParam
+          uri = uri + s"""/{key${i}}"""
           val f1Annot1 = new Annotation("javax.ws.rs.PathParam", getterServiceConst)
-          f1Annot1.addMemberValue("value", new StringMemberValue("key", getterServiceConst))
+          f1Annot1.addMemberValue("value", new StringMemberValue("key" + i, getterServiceConst))
           paramArrays(i) = new Array[Annotation](2)
           paramArrays(i)(1) = f1Annot1
           // @DefaultValue
@@ -550,7 +622,7 @@ class RestCreater(xml: XmlLoader) {
     val jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", getterServiceConst), getterServiceConst)
     jsonArrayMemberValue.setValue(Array[MemberValue](new StringMemberValue("application/json;charset=utf-8", getterServiceConst)))
     val memberValues = Array[Array[MemberValue]](Array(), Array(if (returnType == classPool.get(pageFullName)) new StringMemberValue("/" + url, getterServiceConst)
-    else new StringMemberValue("/" + url + "/{key}", getterServiceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
+    else new StringMemberValue("/" + url + uri, getterServiceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
     JavassistUtil.addAnnotation(getterServiceConst, m, annotationClasses, memberNames, memberValues)
   }
 
@@ -562,7 +634,6 @@ class RestCreater(xml: XmlLoader) {
     val m = new CtMethod(returnType, mname, parameters, declaring)
     m.setModifiers(Modifier.PUBLIC)
     // 方法内的处理逻辑
-    //System.out.println(body)
     m.setBody(body)
     declaring.addMethod(m)
     // 给参数增加注解 @Context
@@ -598,13 +669,19 @@ class RestCreater(xml: XmlLoader) {
     declaring.addMethod(m)
     // 给参数增加注解 @QueryParam @DefaultValue    参考：https://www.cnblogs.com/coshaho/p/5105545.html
     // 涉及到tables， 暂时不封装到JavassistUtil了 = =
+    var uri = ""
     if (method == "DELETE") {
       val parameterAtrribute = new ParameterAnnotationsAttribute(serviceConst, ParameterAnnotationsAttribute.visibleTag)
       val paramArrays = new Array[Array[Annotation]](parameters.length)
-      val annot1 = new Annotation("javax.ws.rs.PathParam", serviceConst)
-      annot1.addMemberValue("value", new StringMemberValue("key", serviceConst))
-      paramArrays(0) = new Array[Annotation](1)
-      paramArrays(0)(0) = annot1
+      for (i <- 0 until table.getFields.size()) {
+        if (table.getFields.get(i).isPrimaryKey) {
+          uri = uri + s"""/{key${i}}"""
+          val annot1 = new Annotation("javax.ws.rs.PathParam", serviceConst)
+          annot1.addMemberValue("value", new StringMemberValue("key" + i, serviceConst))
+          paramArrays(i) = new Array[Annotation](1)
+          paramArrays(i)(0) = annot1
+        }
+      }
       parameterAtrribute.setAnnotations(paramArrays)
       if (m != null) m.getMethodInfo.addAttribute(parameterAtrribute)
     }
@@ -613,8 +690,9 @@ class RestCreater(xml: XmlLoader) {
       val paramArrays = new Array[Array[Annotation]](parameters.length)
       for (i <- 0 until table.getFields.size()) {
         if (table.getFields.get(i).isPrimaryKey) {
+          uri = uri + s"""/{key${i}}"""
           val annot1 = new Annotation("javax.ws.rs.PathParam", serviceConst)
-          annot1.addMemberValue("value", new StringMemberValue("key", serviceConst))
+          annot1.addMemberValue("value", new StringMemberValue("key" + i, serviceConst))
           paramArrays(i) = new Array[Annotation](1)
           paramArrays(i)(0) = annot1
         } else {
@@ -641,7 +719,7 @@ class RestCreater(xml: XmlLoader) {
     val jsonArrayMemberValue = new ArrayMemberValue(new StringMemberValue("", serviceConst), serviceConst)
     jsonArrayMemberValue.setValue(Array[MemberValue](new StringMemberValue("application/json;charset=utf-8", serviceConst)))
     val memberValues = Array[Array[MemberValue]](Array(), Array(if (method == "POST") new StringMemberValue("/" + url, serviceConst)
-    else new StringMemberValue("/" + url + "/{key}", serviceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
+    else new StringMemberValue("/" + url + uri, serviceConst)), Array(jsonArrayMemberValue), Array(jsonArrayMemberValue))
     JavassistUtil.addAnnotation(serviceConst, m, annotationClasses, memberNames, memberValues)
   }
 
