@@ -37,18 +37,7 @@ public class JavassistUtil {
      * @param memberValues          注解类属性的值
      */
     public static void addAnnotation(ClassFile classFile, String[] annotationClasses, String[][] memberNames, MemberValue[][] memberValues) {
-        var attr = new AnnotationsAttribute(classFile.getConstPool(), AnnotationsAttribute.visibleTag);
-        for (int i = 0; i < annotationClasses.length; i ++) {
-            String annotationClass = annotationClasses[i];
-            var annot = new Annotation(annotationClass, classFile.getConstPool());
-            String[] memberName = memberNames[i];
-            MemberValue[] memberValue = memberValues[i];
-            for (int j = 0; j < memberName.length; j ++) {
-                annot.addMemberValue(memberName[j], memberValue[j]);
-            }
-            attr.addAnnotation(annot);
-        }
-        classFile.addAttribute(attr);
+        classFile.addAttribute(getAnnotation(classFile.getConstPool(), annotationClasses, memberNames, memberValues));
     }
 
     /**
@@ -60,6 +49,29 @@ public class JavassistUtil {
      * @param memberValues          注解类属性的值
      */
     public static void addAnnotation(ConstPool constPool, CtMethod method, String[] annotationClasses, String[][] memberNames, MemberValue[][] memberValues) {
+        method.getMethodInfo().addAttribute(getAnnotation(constPool, annotationClasses, memberNames, memberValues));
+    }
+
+    /**
+     * 为目标类的目标参数添加参数注解
+     * @param constPool             目标类的常量池
+     * @param field                 目标参数
+     * @param annotationClasses     注解类名
+     * @param memberNames           注解类属性的名称
+     * @param memberValues          注解类属性的值
+     */
+    public static void addAnnotation(ConstPool constPool, CtField field, String[] annotationClasses, String[][] memberNames, MemberValue[][] memberValues) {
+        field.getFieldInfo().addAttribute(getAnnotation(constPool, annotationClasses, memberNames, memberValues));
+    }
+
+    /**
+     * 获取注解
+     * @param constPool             目标类的常量池
+     * @param annotationClasses     注解类名
+     * @param memberNames           注解类属性的名称
+     * @param memberValues          注解类属性的值
+     */
+    private static AnnotationsAttribute getAnnotation(ConstPool constPool, String[] annotationClasses, String[][] memberNames, MemberValue[][] memberValues) {
         var attr = new AnnotationsAttribute(constPool, AnnotationsAttribute.visibleTag);
         for (int i = 0; i < annotationClasses.length; i ++) {
             String annotationClass = annotationClasses[i];
@@ -71,7 +83,7 @@ public class JavassistUtil {
             }
             attr.addAnnotation(annot);
         }
-        method.getMethodInfo().addAttribute(attr);
+        return attr;
     }
 
     public static CtClass getCtClass(ClassPool classPool, String type) throws NotFoundException {

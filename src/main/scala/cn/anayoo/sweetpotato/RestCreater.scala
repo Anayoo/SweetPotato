@@ -7,7 +7,7 @@ import scala.collection.JavaConverters._
 import cn.anayoo.sweetpotato.model.{Field, Table}
 import cn.anayoo.sweetpotato.util.JavassistUtil
 import javassist._
-import javassist.bytecode.ParameterAnnotationsAttribute
+import javassist.bytecode.{AnnotationsAttribute, ParameterAnnotationsAttribute}
 import javassist.bytecode.annotation.{Annotation, ArrayMemberValue, MemberValue, StringMemberValue}
 
 /**
@@ -26,9 +26,17 @@ class RestCreater(xml: XmlLoader) {
       val obj = classPool.makeClass(modelName)
       // 添加无参的构造体
       obj.addConstructor(JavassistUtil.createConstructor(obj, new Array[CtClass](0), Modifier.PUBLIC, "{}"))
+      val constPool = obj.getClassFile.getConstPool
       table.getFields.stream().forEach(field => {
         val f1 = new CtField(JavassistUtil.getCtClass(obj.getClassPool, field.getType), field.getValue, obj)
         f1.setModifiers(Modifier.PRIVATE)
+
+        // 给参数增加注解@JsonProperty("${value}")
+        val annotationClasses = Array[String]("com.fasterxml.jackson.annotation.JsonProperty")
+        val memberNames = Array[Array[String]](Array("value"))
+        val memberValues = Array[Array[MemberValue]](Array(new StringMemberValue(field.getValue, constPool)))
+        JavassistUtil.addAnnotation(constPool, f1, annotationClasses, memberNames, memberValues)
+
         obj.addField(f1)
         obj.addMethod(CtNewMethod.setter("set" + field.getValue.substring(0, 1).toUpperCase + field.getValue.substring(1), f1))
         obj.addMethod(CtNewMethod.getter("get" + field.getValue.substring(0, 1).toUpperCase + field.getValue.substring(1), f1))
